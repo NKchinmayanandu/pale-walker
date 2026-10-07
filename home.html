@@ -504,7 +504,101 @@ kbd{
 .start-footer{
   display:flex;
   justify-content:center;
+  align-items:center;
+  gap:12px;
   padding-top:6px;
+  flex-wrap:wrap;
+}
+.about-btn{
+  height:44px;
+  padding:0 22px;
+  font-size:13.5px;
+  font-weight:800;
+  letter-spacing:0.8px;
+  background:#132025;
+  color:#7fe3ff;
+  border:1px solid #4c666b;
+  border-radius:6px;
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+.about-btn:hover{
+  background:#1c3138;
+  border-color:#52d3eb;
+  color:#fff;
+  transform:translateY(-1px);
+}
+.about-card{
+  max-width:680px;
+}
+.about-section{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  background:rgba(10,16,19,0.55);
+  border:1px solid rgba(76,102,107,0.3);
+  border-radius:8px;
+  padding:12px 14px;
+}
+.about-section h3{
+  margin:0 0 4px 0;
+  font-size:13px;
+  color:#7fe3ff;
+  letter-spacing:0.6px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.about-lore{
+  font-size:13px;
+  line-height:1.55;
+  color:#e8e2c8;
+  margin:0;
+}
+.about-platform-tip{
+  font-size:12px;
+  font-weight:700;
+  color:#ffd45c;
+  background:rgba(255,212,92,0.1);
+  border:1px solid rgba(255,212,92,0.3);
+  border-radius:6px;
+  padding:6px 10px;
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.about-list{
+  margin:0;
+  padding-left:18px;
+  font-size:12.5px;
+  line-height:1.6;
+  color:#c7d6d8;
+}
+.about-list li strong{
+  color:#fff;
+}
+.about-items-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+}
+@media (max-width: 600px){
+  .about-items-grid{grid-template-columns:1fr}
+}
+.about-item-chip{
+  background:rgba(19,32,37,0.7);
+  border:1px solid rgba(76,102,107,0.4);
+  border-radius:6px;
+  padding:6px 10px;
+  font-size:12px;
+  line-height:1.4;
+  color:#c7d6d8;
+}
+.about-item-chip strong{
+  color:#aff4ff;
+  display:inline-block;
+  margin-right:4px;
 }
 .start-btn-glow{
   height:44px;
@@ -661,8 +755,68 @@ kbd{
     </div>
 
     <div class="start-footer">
+      <button id="about-btn" class="about-btn">📖 ABOUT GAME</button>
       <button id="start-btn" class="modal-btn primary-btn start-btn-glow">
         ▶ START GAME <span class="start-key-badge">[SPACE or F]</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT GAME LORE & GUIDE POPUP -->
+<div id="about-modal" class="modal-backdrop">
+  <div class="modal-card about-card">
+    <div class="modal-header">
+      <h2>📖 ABOUT PALE WALKER</h2>
+      <span style="font-size:11px;font-weight:700;color:#7fe3ff;letter-spacing:0.5px">SURVIVAL GUIDE</span>
+    </div>
+    <div class="modal-body">
+      <div class="about-platform-tip">
+        💻 Best experienced on PC / Laptops with a physical keyboard &amp; widescreen display.
+      </div>
+
+      <div class="about-section">
+        <h3>📜 THE LORE</h3>
+        <p class="about-lore">
+          You are trapped inside an ancient, procedurally carved stone labyrinth. The Pale Monster (SCP-096) lurks in the far corner, guarding the locked exit gates. To survive, you must navigate the twisting halls, search for <strong>3 ancient keys</strong> to unlock the stairs, and escape before the creature tracks your scent and runs you down.
+        </p>
+      </div>
+
+      <div class="about-section">
+        <h3>🎮 HOW TO PLAY &amp; CONTROLS</h3>
+        <ul class="about-list">
+          <li><strong>Movement:</strong> Use <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>▲</kbd><kbd>◀</kbd><kbd>▼</kbd><kbd>▶</kbd> arrow keys to move.</li>
+          <li><strong>Smooth Turning:</strong> In 3D raycaster mode, press <kbd>A</kbd> / <kbd>D</kbd> or <kbd>◀</kbd> / <kbd>▶</kbd> to turn your camera by 90°. Tap <kbd>Space</kbd> for a fast 180° snap turn.</li>
+          <li><strong>Dual Perspectives:</strong> Press <kbd>C</kbd> at any time to switch between 3D First-Person Raycaster and 2D Top-Down Tactical view.</li>
+          <li><strong>Pause &amp; Guide:</strong> Press <kbd>H</kbd> to pause the game and open the help menu.</li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h3>🎒 ITEMS &amp; WHAT THEY DO</h3>
+        <div class="about-items-grid">
+          <div class="about-item-chip"><strong>🔑 Keys:</strong> Collect all 3 to unlock the exit gates.</div>
+          <div class="about-item-chip"><strong>🔥 Torch:</strong> Illuminates pitch-black Dark Zones where you are completely blind.</div>
+          <div class="about-item-chip"><strong>⚡ Stun Shot:</strong> Press <kbd>1</kbd> to freeze the monster for 3.5s (up to 10 tiles away).</div>
+          <div class="about-item-chip"><strong>🧱 Block:</strong> Press <kbd>2</kbd> to drop a barricade behind you that temporarily halts the beast.</div>
+          <div class="about-item-chip"><strong>🗺️ Map Scroll:</strong> Instantly reveals the full labyrinth layout.</div>
+          <div class="about-item-chip"><strong>🏃 Sprint:</strong> Press <kbd>Shift</kbd> for a 1.5s burst of speed to escape tight corners.</div>
+        </div>
+      </div>
+
+      <div class="about-section">
+        <h3>⚠️ THE HUNT &amp; SURVIVAL RULES</h3>
+        <ul class="about-list">
+          <li><strong>Awakening:</strong> The monster begins asleep. The moment you collect your <strong>first key</strong>, it awakens and stalks towards you using optimal BFS pathfinding.</li>
+          <li><strong>The Gaze &amp; Chase:</strong> If you step into its line of sight, it lets out a bloodcurdling scream (Windup phase) and charges into a deadly sprint that outpaces your normal walking speed.</li>
+          <li><strong>Pitch-Black Zones:</strong> Certain sectors are completely dark — without the Torch in your inventory, you cannot see anything inside them.</li>
+          <li><strong>Difficulty Scaling:</strong> Each difficulty level presets different item supplies, enemy chase speeds, and number of hunters.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="about-ok-btn" class="modal-btn primary-btn" style="min-width:140px">
+        ✓ OK, GOT IT
       </button>
     </div>
   </div>
@@ -2164,6 +2318,13 @@ const map={
 addEventListener('keydown',e=>{
   const key=e.key.toLowerCase();
   if(!gameStarted){
+    if(aboutOpen){
+      if(key==='escape'||key==='enter'||key===' '){
+        toggleAbout(false);
+        e.preventDefault();
+      }
+      return;
+    }
     if(key==='1'){selectDifficulty('easy');e.preventDefault();return}
     if(key==='2'){selectDifficulty('moderate');e.preventDefault();return}
     if(key==='3'){selectDifficulty('hard');e.preventDefault();return}
@@ -2234,6 +2395,21 @@ if(togglePadBtn&&padEl){
 // ============================================================================
 // START SCREEN & DIFFICULTY SELECTION SYSTEM
 // ============================================================================
+let aboutOpen=false;
+const aboutModal=document.getElementById('about-modal');
+const aboutBtn=document.getElementById('about-btn');
+const aboutOkBtn=document.getElementById('about-ok-btn');
+
+function toggleAbout(open){
+  aboutOpen=typeof open==='boolean'?open:!aboutOpen;
+  if(aboutModal){
+    aboutModal.classList.toggle('active',aboutOpen);
+  }
+}
+
+if(aboutBtn)aboutBtn.addEventListener('click',()=>toggleAbout(true));
+if(aboutOkBtn)aboutOkBtn.addEventListener('click',()=>toggleAbout(false));
+
 function selectDifficulty(diffKey){
   if(!DIFFICULTIES[diffKey])return;
   currentDifficulty=DIFFICULTIES[diffKey];
