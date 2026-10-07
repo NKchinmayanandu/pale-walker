@@ -417,7 +417,7 @@ kbd{
 <button data-k="snap">⟲ 180</button><button data-k="up">▲</button><button data-k="sprint">Sprint</button>
 <button data-k="left">◀</button><button data-k="down">▼</button><button data-k="right">▶</button>
 <button data-k="stun">Stun</button><button data-k="block">Block</button><button data-k="restart">Restart</button>
-<button data-k="mode">View: 2D</button><button data-k="use">E pick up</button><button data-k="debug">BFS: OFF</button>
+<button data-k="mode">View: 3D</button><button data-k="use">E pick up</button><button data-k="debug">BFS: OFF</button>
 </div>
 <div id="bar-controls">
 <button id="help-btn" class="bar-btn">? Help (H)</button>
@@ -967,6 +967,17 @@ function init(){
     if(lc.length>=10&&allReach)break;
   }
   over=null;
+  let bestDir=P.dir,maxOpenDist=-1;
+  for(let d=0;d<4;d++){
+    const fx=P.cx+DX[d],fy=P.cy+DY[d];
+    if(fx>=0&&fy>=0&&fx<N&&fy<N&&g[fy][fx]===0){
+      let dist=0,cx=fx,cy=fy;
+      while(cx>=0&&cy>=0&&cx<N&&cy<N&&g[cy][cx]===0){dist++;cx+=DX[d];cy+=DY[d]}
+      if(dist>maxOpenDist){maxOpenDist=dist;bestDir=d}
+    }
+  }
+  P.dir=bestDir;
+  camA=(P.dir-1)*Math.PI/2;
   seen=Array.from({length:N},()=>Array(N).fill(false));
   seen[pair.exit[1]][pair.exit[0]]=true;
   if(currentDifficulty.reveal2D){
@@ -1074,7 +1085,7 @@ function arriveP(){
   if(mode==='abs')pickup();
   if(g[P.cy][P.cx]===2)over='win';
 }
-let mode='abs',held=[];
+let mode='rel',held=[];
 const AB={up:0,right:1,down:2,left:3};
 function setMode(m){
   mode=m;held=[];K={};
