@@ -268,6 +268,121 @@ kbd{
 .primary-btn:hover{background:#318a99}
 .secondary-btn{background:#172326;color:var(--fg);border-color:#4c666b}
 .secondary-btn:hover{background:#233438}
+
+/* START / LAUNCH SCREEN WITH DIFFICULTY SELECTION */
+.start-card{
+  max-width:720px;
+  text-align:center;
+  padding:22px 26px;
+  gap:16px;
+}
+.start-header{
+  border-bottom:1px solid rgba(76,102,107,0.4);
+  padding-bottom:10px;
+}
+.game-title{
+  margin:0;
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:2px;
+  color:#7fe3ff;
+  text-shadow:0 0 16px rgba(127,227,255,0.4);
+}
+.game-subtitle{
+  margin:4px 0 0 0;
+  font-size:12.5px;
+  color:#a8b8ba;
+}
+.diff-title-bar{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:1.5px;
+  color:#ffd45c;
+  margin-bottom:10px;
+}
+.diff-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+.diff-card{
+  background:rgba(16,26,30,0.85);
+  border:1.5px solid #33484c;
+  border-radius:10px;
+  padding:12px 14px;
+  cursor:pointer;
+  text-align:left;
+  transition:all 0.2s ease;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.diff-card:hover{
+  border-color:#52d3eb;
+  background:rgba(22,38,44,0.95);
+  transform:translateY(-2px);
+}
+.diff-card.selected{
+  border-color:#7fe3ff;
+  background:rgba(24,42,49,0.95);
+  box-shadow:0 0 16px rgba(127,227,255,0.3);
+}
+.diff-badge{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:0.8px;
+}
+.diff-badge.easy{color:#4ade80}
+.diff-badge.moderate{color:#ffd23a}
+.diff-badge.hard{color:#ff8a50}
+.diff-badge.hardest{color:#ff5240}
+.diff-name{
+  font-size:12.5px;
+  font-weight:800;
+  color:#fff;
+  letter-spacing:0.5px;
+}
+.diff-perks{
+  margin:0;
+  padding-left:16px;
+  font-size:11px;
+  color:#b0c4c7;
+  line-height:1.45;
+}
+.diff-key-hint{
+  font-size:10px;
+  color:#668286;
+  font-family:monospace;
+  margin-top:2px;
+}
+.start-footer{
+  display:flex;
+  justify-content:center;
+  padding-top:6px;
+}
+.start-btn-glow{
+  height:44px;
+  padding:0 36px;
+  font-size:15px;
+  letter-spacing:1px;
+  background:#25707d;
+  border:1px solid #52d3eb;
+  box-shadow:0 0 20px rgba(82,211,235,0.4);
+}
+.start-btn-glow:hover{
+  background:#318a99;
+  box-shadow:0 0 28px rgba(82,211,235,0.6);
+}
+.start-key-badge{
+  font-size:12px;
+  opacity:0.85;
+  font-weight:600;
+  margin-left:6px;
+}
+@media (max-width: 600px){
+  .diff-grid{grid-template-columns:1fr}
+}
 </style></head><body>
 <div id="viewport">
 <div id="hud-wrap"><div id="hud"></div><div id="msg"></div></div>
@@ -335,6 +450,75 @@ kbd{
     <span id="mmap-badge" class="mmap-badge">NORMAL</span>
   </div>
   <canvas id="mmap" width="272" height="272"></canvas>
+</div>
+
+<!-- START / LAUNCH SCREEN WITH DIFFICULTY SELECTION -->
+<div id="start-modal" class="modal-backdrop active">
+  <div class="modal-card start-card">
+    <div class="start-header">
+      <h1 class="game-title">PALE WALKER</h1>
+      <p class="game-subtitle">Escape the complex · Collect 3 Keys · Avoid his gaze</p>
+    </div>
+
+    <div class="diff-section">
+      <div class="diff-title-bar">SELECT DIFFICULTY</div>
+      <div class="diff-grid">
+        <div class="diff-card" data-diff="easy">
+          <div class="diff-badge easy">🟢 EASY</div>
+          <div class="diff-name">SURVIVOR</div>
+          <ul class="diff-perks">
+            <li>Enemy Chase 1.0×, Stalk 0.4×</li>
+            <li>Full 2D Map Revealed</li>
+            <li>3 Stun Shots · 3 Blocks</li>
+            <li>1 Stalker (Starts sleeping)</li>
+          </ul>
+          <span class="diff-key-hint">Press [1]</span>
+        </div>
+
+        <div class="diff-card selected" data-diff="moderate">
+          <div class="diff-badge moderate">🟡 MODERATE</div>
+          <div class="diff-name">STALKER (CLASSIC)</div>
+          <ul class="diff-perks">
+            <li>Enemy Chase 1.1×, Stalk 0.6×</li>
+            <li>Standard Fog of War</li>
+            <li>2 Stun Shots · 2 Blocks</li>
+            <li>1 Stalker (Starts sleeping)</li>
+          </ul>
+          <span class="diff-key-hint">Press [2]</span>
+        </div>
+
+        <div class="diff-card" data-diff="hard">
+          <div class="diff-badge hard">🔴 HARD</div>
+          <div class="diff-name">NIGHTMARE</div>
+          <ul class="diff-perks">
+            <li>+10% Enemy Speed (1.21× / 0.66×)</li>
+            <li>Reduced 3D Sight Distance</li>
+            <li>1 Stun Shot · 2 Blocks</li>
+            <li>1 Stalker (Starts sleeping)</li>
+          </ul>
+          <span class="diff-key-hint">Press [3]</span>
+        </div>
+
+        <div class="diff-card" data-diff="hardest">
+          <div class="diff-badge hardest">💀 HARDEST</div>
+          <div class="diff-name">DEATH MARCH</div>
+          <ul class="diff-perks">
+            <li><strong>3 BOSSES AT ONCE!</strong></li>
+            <li>One at each of the 3 other corners</li>
+            <li><strong>NO SLEEP</strong> (Active immediately)</li>
+            <li>0 Stuns · <strong>1 Block Only</strong> · Darker Sight</li>
+          </ul>
+          <span class="diff-key-hint">Press [4]</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="start-footer">
+      <button id="start-btn" class="modal-btn primary-btn start-btn-glow">
+        ▶ START GAME <span class="start-key-badge">[SPACE or F]</span>
+      </button>
+    </div>
+  </div>
 </div>
 
 </div>
@@ -427,9 +611,77 @@ let bfsDebug=false;
 let isPaused=false,helpOpen=false;
 
 // ============================================================================
+// DIFFICULTY CONFIGURATION & SYSTEM PRESETS
+// ============================================================================
+const DIFFICULTIES = {
+  easy: {
+    id: 'easy',
+    name: 'Survivor',
+    chaseMul: 1.0,
+    stalkMul: 0.4,
+    stuns: 3,
+    blocks: 3,
+    keys: 3,
+    maps: 1,
+    torches: 1,
+    reveal2D: true,
+    viewDist3D: 15,
+    bossCount: 1,
+    startState: 'idle'
+  },
+  moderate: {
+    id: 'moderate',
+    name: 'Stalker (Classic)',
+    chaseMul: 1.1,
+    stalkMul: 0.6,
+    stuns: 2,
+    blocks: 2,
+    keys: 3,
+    maps: 1,
+    torches: 1,
+    reveal2D: false,
+    viewDist3D: 15,
+    bossCount: 1,
+    startState: 'idle'
+  },
+  hard: {
+    id: 'hard',
+    name: 'Nightmare',
+    chaseMul: 1.21,
+    stalkMul: 0.66,
+    stuns: 1,
+    blocks: 2,
+    keys: 3,
+    maps: 1,
+    torches: 1,
+    reveal2D: false,
+    viewDist3D: 10,
+    bossCount: 1,
+    startState: 'idle'
+  },
+  hardest: {
+    id: 'hardest',
+    name: 'Death March',
+    chaseMul: 1.2,
+    stalkMul: 1.0,
+    stuns: 0,
+    blocks: 1,
+    keys: 3,
+    maps: 0,
+    torches: 1,
+    reveal2D: false,
+    viewDist3D: 7.5,
+    bossCount: 3,
+    startState: 'stalk'
+  }
+};
+let currentDifficulty = DIFFICULTIES.moderate;
+let gameStarted = false;
+
+// ============================================================================
 // GAME STATE & SYSTEM VARIABLES
 // ============================================================================
-let g,items=[],P,E,traps=[],blocks=[],seen,over,K={};
+let g,items=[],P,E,enemies=[],traps=[],blocks=[],seen,over,K={};
 let rooms=[],torchLights=[];
 let DR={x0:99,y0:99,x1:-1,y1:-1};
 const dark=(x,y)=>x>=DR.x0&&x<=DR.x1&&y>=DR.y0&&y<=DR.y1;
@@ -621,9 +873,9 @@ function generateDungeon(pair){
   generateRooms();
   carveMazeCorridors();
   placeTorchLights();
-  // Ensure player spawn corner and enemy corner are open passages
-  g[pair.p[1]][pair.p[0]]=0;
-  g[pair.e[1]][pair.e[0]]=0;
+  // Ensure all 4 inner corners are open passages for player and bosses
+  const allCorners=[[1,1],[N-2,1],[1,N-2],[N-2,N-2]];
+  allCorners.forEach(([cx,cy])=>{g[cy][cx]=0});
   // Set exit on the outer boundary wall at the enemy's diagonal corner
   g[pair.exit[1]][pair.exit[0]]=2;
 }
@@ -659,7 +911,7 @@ function pickDark(){
 function init(){
   currentSeed=Math.floor(Math.random()*900000)+100000;
   rng=mulberry32(currentSeed);
-  blocks=[];traps=[];items=[];
+  blocks=[];traps=[];items=[];enemies=[];
   camA=null;
   cv.width=cv.height=W;
   lightCanvas.width=lightCanvas.height=W;
@@ -668,18 +920,37 @@ function init(){
     pair=CORNER_PAIRS[Math.floor(rng()*CORNER_PAIRS.length)];
     generateDungeon(pair);
     P={cx:pair.p[0],cy:pair.p[1],fx:pair.p[0],fy:pair.p[1],tx:pair.p[0],ty:pair.p[1],mv:false,dir:pair.pDir,keys:0,torch:false,stun:0,block:0,adr:0,sprintT:0,sprintCD:0};
-    E={cx:pair.e[0],cy:pair.e[1],fx:pair.e[0],fy:pair.e[1],tx:pair.e[0],ty:pair.e[1],mv:false,st:'idle',t:0,path:[]};
+
+    const allCorners=[[1,1],[N-2,1],[1,N-2],[N-2,N-2]];
+    const otherCorners=allCorners.filter(c=>!(c[0]===pair.p[0]&&c[1]===pair.p[1]));
+
+    enemies=[];
+    if(currentDifficulty.bossCount===3){
+      for(let i=0;i<3;i++){
+        const ec=otherCorners[i];
+        enemies.push({id:i,cx:ec[0],cy:ec[1],fx:ec[0],fy:ec[1],tx:ec[0],ty:ec[1],mv:false,st:currentDifficulty.startState,t:0,path:[]});
+      }
+    }else{
+      enemies.push({id:0,cx:pair.e[0],cy:pair.e[1],fx:pair.e[0],fy:pair.e[1],tx:pair.e[0],ty:pair.e[1],mv:false,st:currentDifficulty.startState,t:0,path:[]});
+    }
+    E=enemies[0];
+
     pickDark();
     R=reach();
     lc=Object.keys(R).filter(k=>R[k]>0);
-    if(lc.length>=10&&bfs(P.cx,P.cy,E.cx,E.cy)!==null)break;
+    const allReach=enemies.every(e=>bfs(P.cx,P.cy,e.cx,e.cy,e)!==null);
+    if(lc.length>=10&&allReach)break;
   }
   over=null;
   seen=Array.from({length:N},()=>Array(N).fill(false));
   seen[pair.exit[1]][pair.exit[0]]=true;
-  E.path=[];
+  if(currentDifficulty.reveal2D){
+    seen.forEach(r=>r.fill(true));
+  }
+  enemies.forEach(e=>{e.path=[]});
 
-  const used=new Set([P.cx+','+P.cy,pair.exit[0]+','+pair.exit[1],E.cx+','+E.cy]);
+  const used=new Set([P.cx+','+P.cy,pair.exit[0]+','+pair.exit[1]]);
+  enemies.forEach(e=>used.add(e.cx+','+e.cy));
 
   const pick=(d)=>{
     let x,y,k,tries=0;
@@ -695,15 +966,23 @@ function init(){
   used.add(tk.join(','));
   items.push({x:tk[0],y:tk[1],type:'torch'});
   [0,0,1].forEach(d=>items.push({...pick(!!d),type:'key'}));
-  [['stun',0],['stun',1],['block',0],['block',1],['map',0]].forEach(([t,d])=>items.push({...pick(!!d),type:t}));
+
+  const itemDist=[];
+  for(let s=0;s<currentDifficulty.stuns;s++)itemDist.push(['stun',s%2]);
+  for(let b=0;b<currentDifficulty.blocks;b++)itemDist.push(['block',b%2]);
+  for(let m=0;m<currentDifficulty.maps;m++)itemDist.push(['map',0]);
+  itemDist.forEach(([t,d])=>items.push({...pick(!!d),type:t}));
+
   if(mmapPanel)mmapPanel.classList.toggle('active',mode==='rel');
-  say('Grab the torch, find 3 keys, reach the EXIT.');
+  say(currentDifficulty.id==='hardest'
+    ?'DEATH MARCH: 3 STALKERS HUNTING. Grab torch, find 3 keys, ESCAPE!'
+    :'Grab the torch, find 3 keys, reach the EXIT.');
 }
 
 // ============================================================================
 // BFS PATHFINDING WITH FULL PATH TRACKING
 // ============================================================================
-function bfs(sx,sy,tx,ty){
+function bfs(sx,sy,tx,ty,entity=E){
   const prev={},q=[[sx,sy]];prev[sx+','+sy]=null;
   while(q.length){
     const [x,y]=q.shift();
@@ -715,13 +994,13 @@ function bfs(sx,sy,tx,ty){
     }
   }
   const tk=tx+','+ty;
-  if(!(tk in prev)){E.path=[];return null}
+  if(!(tk in prev)){if(entity)entity.path=[];return null}
   let c=[tx,ty],path=[];
   while(c&&(c[0]!==sx||c[1]!==sy)){
     path.unshift(c);
     c=prev[c[0]+','+c[1]];
   }
-  E.path=path;
+  if(entity)entity.path=path;
   return path[0]?{x:path[0][0],y:path[0][1]}:null;
 }
 
@@ -736,12 +1015,13 @@ function canEnter(x,y){
   if(g[y][x]===2&&P.keys<3){say('Gate locked. Need 3 keys ('+P.keys+'/3).');return false}
   return true;
 }
-function sees(){
+function sees(e=E){
+  if(!e)return false;
   let x=Math.round(P.fx),y=Math.round(P.fy);
   for(let i=0;i<10;i++){
     x+=DX[P.dir];y+=DY[P.dir];
     if(solid(x,y))return false;
-    if(Math.round(E.fx)===x&&Math.round(E.fy)===y)return lit(x,y);
+    if(Math.round(e.fx)===x&&Math.round(e.fy)===y)return lit(x,y);
   }
   return false;
 }
@@ -749,7 +1029,15 @@ function pickup(){
   for(let i=items.length-1;i>=0;i--){
     const it=items[i];if(it.x!==P.cx||it.y!==P.cy)continue;
     items.splice(i,1);
-    if(it.type==='key'){P.keys++;say('Key '+P.keys+'/3');if(E.st==='idle'){E.st='stalk';say('Key '+P.keys+'/3 — something woke up...')}}
+    if(it.type==='key'){
+      P.keys++;
+      let woke=false;
+      enemies.forEach(e=>{
+        if(e.st==='idle'){e.st='stalk';woke=true}
+      });
+      if(woke)say('Key '+P.keys+'/3 — something woke up...');
+      else say('Key '+P.keys+'/3');
+    }
     else if(it.type==='torch'){P.torch=true;say('Torch acquired. You can enter the dark zone.')}
     else if(it.type==='stun'){P.stun++;say('Stun shot +1  (face it, press 1)')}
     else if(it.type==='block'){P.block++;say('Block +1  (press 2)')}
@@ -772,12 +1060,18 @@ function setMode(m){
   if(helpOpen)updateHelpStatus();
 }
 function zap(){
-  if(E.st==='idle'||E.st==='stun')return false;
   let x=Math.round(P.fx),y=Math.round(P.fy);
   for(let i=0;i<10;i++){
     x+=DX[P.dir];y+=DY[P.dir];
     if(solid(x,y))return false;
-    if(Math.round(E.fx)===x&&Math.round(E.fy)===y){E.st='stun';E.t=3.5;P.zapT=.3;say('Direct hit — it is stunned!');return true}
+    for(let e of enemies){
+      if(e.st==='idle'||e.st==='stun')continue;
+      if(Math.round(e.fx)===x&&Math.round(e.fy)===y){
+        e.st='stun';e.t=3.5;P.zapT=.3;
+        say('Direct hit — it is stunned!');
+        return true;
+      }
+    }
   }
   return false;
 }
@@ -788,13 +1082,16 @@ function zap(){
 function updateHelpStatus(){
   const el=document.getElementById('help-status-grid');
   if(!el)return;
+  const anyRage=enemies.some(e=>e.st==='chase'||e.st==='windup');
+  const enemyStates=enemies.map(e=>e.st.toUpperCase()).join(', ');
   el.innerHTML=`
+    <div class="status-item"><span class="lbl">Difficulty:</span> <span class="val danger">${currentDifficulty.name}</span></div>
     <div class="status-item"><span class="lbl">Keys:</span> <span class="val">${P.keys} / 3</span></div>
     <div class="status-item"><span class="lbl">Torch:</span> <span class="val ${P.torch?'lit':'dim'}">${P.torch?'Equipped':'Missing'}</span></div>
     <div class="status-item"><span class="lbl">Stun Shots:</span> <span class="val">${P.stun}</span></div>
     <div class="status-item"><span class="lbl">Blocks:</span> <span class="val">${P.block}</span></div>
     <div class="status-item"><span class="lbl">Sprint:</span> <span class="val">${P.sprintCD>0?P.sprintCD.toFixed(0)+'s CD':'Ready'}</span></div>
-    <div class="status-item"><span class="lbl">096 State:</span> <span class="val ${E.st==='chase'||E.st==='windup'?'danger':'normal'}">${E.st.toUpperCase()}</span></div>
+    <div class="status-item"><span class="lbl">096 State:</span> <span class="val ${anyRage?'danger':'normal'}">${enemyStates}</span></div>
     <div class="status-item"><span class="lbl">View Mode:</span> <span class="val">${mode==='abs'?'2D':'3D'}</span></div>
     <div class="status-item"><span class="lbl">Dungeon Seed:</span> <span class="val">#${currentSeed}</span></div>
   `;
@@ -825,7 +1122,7 @@ function press(k){
   if(k==='help'){toggleHelp();return}
   if(k==='fullscreen'){toggleFullscreen();return}
   if(k==='restart'){if(helpOpen)toggleHelp();init();return}
-  if(isPaused)return;
+  if(isPaused||!gameStarted)return;
   if(k==='mode'){setMode(mode==='abs'?'rel':'abs');return}
   if(k==='debug'){
     bfsDebug=!bfsDebug;
@@ -844,14 +1141,14 @@ function press(k){
   else if(k==='stun'){if(P.stun>0){if(zap())P.stun--;else say('No target in line (10 tiles).')}}
   else if(k==='block'){
     const bx=P.mv?P.cx:P.cx-DX[P.dir],by=P.mv?P.cy:P.cy-DY[P.dir];
-    const nearE=[[E.cx,E.cy],[E.tx,E.ty]].some(([a,b])=>a===bx&&b===by);
+    const nearE=enemies.some(e=>[[e.cx,e.cy],[e.tx,e.ty]].some(([a,b])=>a===bx&&b===by));
     if(P.block>0&&!solid(bx,by)&&!nearE&&g[by][bx]===0){P.block--;blocks.push({x:bx,y:by,t:15})}
   }else K[k]=1;
 }
 function release(k){delete K[k];held=held.filter(h=>h!==k)}
 
 function update(dt){
-  if(over||isPaused)return;
+  if(over||isPaused||!gameStarted)return;
   P.adr=Math.max(0,P.adr-dt);P.zapT=Math.max(0,(P.zapT||0)-dt);P.sprintT=Math.max(0,P.sprintT-dt);P.sprintCD=Math.max(0,P.sprintCD-dt);
   blocks.forEach(b=>b.t-=dt);blocks=blocks.filter(b=>b.t>0);
   // player
@@ -878,22 +1175,25 @@ function update(dt){
     }
   }
   updE(dt);
-  if((E.st==='stalk'||E.st==='chase')&&Math.hypot(E.fx-P.fx,E.fy-P.fy)<0.6)over='dead';
+  if(enemies.some(e=>(e.st==='stalk'||e.st==='chase')&&Math.hypot(e.fx-P.fx,e.fy-P.fy)<0.6))over='dead';
 }
 function updE(dt){
-  if(E.st==='idle')return;
-  if(E.st==='windup'){E.t-=dt;if(E.t<=0){E.st='chase';say('IT IS HUNTING YOU!')}return}
-  if(E.st==='stun'){E.t-=dt;if(E.t<=0){E.st='stalk';say('It recovers and stalks again...')}return}
-  if(E.st==='stalk'&&sees()){E.st='windup';E.t=5;P.adr=5;say('IT SEES YOU — RUN! (adrenaline)');return}
-  if(!E.mv){
-    const n=bfs(E.cx,E.cy,Math.round(P.fx),Math.round(P.fy));
-    if(!n){if(E.st==='chase'){E.st='stalk';say('Path blocked. It lost you... stalking.')}return}
-    E.tx=n.x;E.ty=n.y;E.mv=true;
-  }
-  if(step(E,V*(E.st==='chase'?1.1:0.6),dt)){
-    const i=traps.findIndex(t=>t.x===E.cx&&t.y===E.cy);
-    if(i>=0){traps.splice(i,1);E.st='stun';E.t=3.5;say('It stepped on the trap — stunned!')}
-  }
+  enemies.forEach(e=>{
+    if(e.st==='idle')return;
+    if(e.st==='windup'){e.t-=dt;if(e.t<=0){e.st='chase';say('IT IS HUNTING YOU!')}return}
+    if(e.st==='stun'){e.t-=dt;if(e.t<=0){e.st='stalk';say('It recovers and stalks again...')}return}
+    if(e.st==='stalk'&&sees(e)){e.st='windup';e.t=5;P.adr=5;say('IT SEES YOU — RUN! (adrenaline)');return}
+    if(!e.mv){
+      const n=bfs(e.cx,e.cy,Math.round(P.fx),Math.round(P.fy),e);
+      if(!n){if(e.st==='chase'){e.st='stalk';say('Path blocked. It lost you... stalking.')}return}
+      e.tx=n.x;e.ty=n.y;e.mv=true;
+    }
+    const speedMul=e.st==='chase'?currentDifficulty.chaseMul:currentDifficulty.stalkMul;
+    if(step(e,V*speedMul,dt)){
+      const i=traps.findIndex(t=>t.x===e.cx&&t.y===e.cy);
+      if(i>=0){traps.splice(i,1);e.st='stun';e.t=3.5;say('It stepped on the trap — stunned!')}
+    }
+  });
 }
 
 // ============================================================================
@@ -1033,15 +1333,17 @@ function draw2d(){
     }
   });
   // Hunter
-  if(lit(Math.round(E.fx),Math.round(E.fy))){
-    const ex=cc(E.fx),ey=cc(E.fy),rage=E.st==='chase'||E.st==='windup',sh=E.st==='windup'?(Math.random()-.5)*4:0;
-    shadow(ex,ey,16);ctx.save();ctx.translate(ex+sh,ey);
-    const bc=rage?'#ff5240':E.st==='stun'?'#8ab4c0':'#6ee7d9';
-    ctx.globalAlpha=.22;ctx.fillStyle=bc;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.fill();ctx.globalAlpha=1;
-    ctx.fillStyle=bc;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.fill();
-    ctx.fillStyle=rage?'#2a0505':'#0a2222';ctx.beginPath();ctx.arc(-5,-2,3.2,0,7);ctx.arc(5,-2,3.2,0,7);ctx.fill();
-    ctx.fillStyle=rage?'#ffd0c8':'#b7fff2';ctx.fillRect(-8,7,16,3);ctx.restore();
-  }
+  enemies.forEach(e=>{
+    if(lit(Math.round(e.fx),Math.round(e.fy))){
+      const ex=cc(e.fx),ey=cc(e.fy),rage=e.st==='chase'||e.st==='windup',sh=e.st==='windup'?(Math.random()-.5)*4:0;
+      shadow(ex,ey,16);ctx.save();ctx.translate(ex+sh,ey);
+      const bc=rage?'#ff5240':e.st==='stun'?'#8ab4c0':'#6ee7d9';
+      ctx.globalAlpha=.22;ctx.fillStyle=bc;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.fill();ctx.globalAlpha=1;
+      ctx.fillStyle=bc;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.fill();
+      ctx.fillStyle=rage?'#2a0505':'#0a2222';ctx.beginPath();ctx.arc(-5,-2,3.2,0,7);ctx.arc(5,-2,3.2,0,7);ctx.fill();
+      ctx.fillStyle=rage?'#ffd0c8':'#b7fff2';ctx.fillRect(-8,7,16,3);ctx.restore();
+    }
+  });
   // Player
   const pcx=cc(P.fx),pcy=cc(P.fy);
   shadow(pcx,pcy,13);ctx.save();ctx.translate(pcx,pcy);
@@ -1053,26 +1355,30 @@ function draw2d(){
   ctx.restore();
 
   // BFS Debug Path Overlay
-  if(bfsDebug&&E.path&&E.path.length>0){
-    ctx.save();
-    ctx.strokeStyle='rgba(77,224,255,0.85)';
-    ctx.lineWidth=2.5;
-    ctx.setLineDash([5,5]);
-    ctx.beginPath();
-    ctx.moveTo(E.fx*T+T/2,E.fy*T+T/2);
-    for(let p of E.path)ctx.lineTo(p[0]*T+T/2,p[1]*T+T/2);
-    ctx.lineTo(P.fx*T+T/2,P.fy*T+T/2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    for(let i=0;i<E.path.length;i++){
-      const p=E.path[i];
-      const pulse=3+Math.sin(tm*0.008+i*0.4)*1.5;
-      ctx.fillStyle='rgba(77,224,255,0.95)';
-      ctx.beginPath();
-      ctx.arc(p[0]*T+T/2,p[1]*T+T/2,pulse,0,Math.PI*2);
-      ctx.fill();
-    }
-    ctx.restore();
+  if(bfsDebug){
+    enemies.forEach(e=>{
+      if(e.path&&e.path.length>0){
+        ctx.save();
+        ctx.strokeStyle='rgba(77,224,255,0.85)';
+        ctx.lineWidth=2.5;
+        ctx.setLineDash([5,5]);
+        ctx.beginPath();
+        ctx.moveTo(e.fx*T+T/2,e.fy*T+T/2);
+        for(let p of e.path)ctx.lineTo(p[0]*T+T/2,p[1]*T+T/2);
+        ctx.lineTo(P.fx*T+T/2,P.fy*T+T/2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        for(let i=0;i<e.path.length;i++){
+          const p=e.path[i];
+          const pulse=3+Math.sin(tm*0.008+i*0.4)*1.5;
+          ctx.fillStyle='rgba(77,224,255,0.95)';
+          ctx.beginPath();
+          ctx.arc(p[0]*T+T/2,p[1]*T+T/2,pulse,0,Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    });
   }
 
   if(P.zapT>0){ctx.fillStyle='rgba(80,225,255,'+P.zapT+')';ctx.fillRect(0,0,W,W)}
@@ -1094,7 +1400,10 @@ function tail(){
     ctx.fillStyle='#d9a441';ctx.fillText('Press R or tap Restart',W/2,by+bh*.84);
     ctx.restore();
   }
-  hud.innerHTML='Keys '+P.keys+'/3 · Torch '+(P.torch?'✓':'✗')+' · Stun '+P.stun+' · Block '+P.block+' · Sprint '+(P.sprintCD>0?P.sprintCD.toFixed(0)+'s':'ready')+' · 096: '+E.st.toUpperCase()+(bfsDebug?' · <span style="color:#4de0ff">[BFS ON]</span>':'')+' · Seed #'+currentSeed;
+  const enemyStatus = enemies.length > 1
+    ? '096 ('+enemies.length+'): ' + enemies.map(e=>e.st[0].toUpperCase()).join('/')
+    : '096: ' + (enemies[0]?enemies[0].st.toUpperCase():'IDLE');
+  hud.innerHTML='Keys '+P.keys+'/3 · Torch '+(P.torch?'✓':'✗')+' · Stun '+P.stun+' · Block '+P.block+' · Sprint '+(P.sprintCD>0?P.sprintCD.toFixed(0)+'s':'ready')+' · '+enemyStatus+' · ['+currentDifficulty.name.toUpperCase()+']'+(bfsDebug?' · <span style="color:#4de0ff">[BFS ON]</span>':'')+' · Seed #'+currentSeed;
 }
 
 // ---------- 3D raycaster view (shares all game state with 2D) ----------
@@ -1103,7 +1412,7 @@ oc.width=oc.height=RW;
 const octx=oc.getContext('2d'),img=new ImageData(new Uint8ClampedArray(buf.buffer),RW,RW);
 let camA=null,curFov=0.92,DT=.016;
 const pxc=(r,g,b)=>0xFF000000|((Math.min(255,b|0))<<16)|((Math.min(255,g|0))<<8)|Math.min(255,r|0);
-const lightAt=(x,y,d)=>dark(x,y)?(P.torch?Math.pow(Math.max(0,1-d/3.8),1.2):0):Math.max(.38,1-d/15);
+const lightAt=(x,y,d)=>dark(x,y)?(P.torch?Math.pow(Math.max(0,1-d/3.8),1.2):0):Math.max(.38,1-d/currentDifficulty.viewDist3D);
 function wallRGB(mx,my,u,v){
   const gt=(mx>=0&&my>=0&&mx<N&&my<N)?g[my][mx]:1,st=((v*6)|0)%2;
   if(gt===2)return P.keys>=3?[50,190+st*30,90]:[185+st*35,45,40];
@@ -1218,17 +1527,19 @@ function draw3d(){
       S.push([t.x+.5,t.y+.5,.18,.45,.02,'trap',()=>[80,225,255]]);
     }
   });
-  if(lit(Math.round(E.fx),Math.round(E.fy))){
-    const rage=E.st==='chase'||E.st==='windup',bd=rage?[220,35,35]:E.st==='stun'?[120,180,200]:[230,230,220],sh=E.st==='windup'?Math.sin(tm*40)*.04:0;
-    S.push([E.fx+.5+sh,E.fy+.5,1.25,.55,0,null,(u,v)=>{
-      const xx=Math.abs(u-.5);
-      if(v<.17)return xx<.12?((v>.06&&v<.11&&xx>.03&&xx<.08)||(rage&&v>.11&&xx<.06)?(rage?[255,30,30]:[10,0,0]):bd):null;
-      if(v<.65&&xx<.14)return bd;
-      if(v>.18&&v<.88&&xx>.16&&xx<.22)return bd;
-      if(v>=.65&&xx>.02&&xx<.12)return bd;
-      return null;
-    }]);
-  }
+  enemies.forEach(e=>{
+    if(lit(Math.round(e.fx),Math.round(e.fy))){
+      const rage=e.st==='chase'||e.st==='windup',bd=rage?[220,35,35]:e.st==='stun'?[120,180,200]:[230,230,220],sh=e.st==='windup'?Math.sin(tm*40)*.04:0;
+      S.push([e.fx+.5+sh,e.fy+.5,1.25,.55,0,null,(u,v)=>{
+        const xx=Math.abs(u-.5);
+        if(v<.17)return xx<.12?((v>.06&&v<.11&&xx>.03&&xx<.08)||(rage&&v>.11&&xx<.06)?(rage?[255,30,30]:[10,0,0]):bd):null;
+        if(v<.65&&xx<.14)return bd;
+        if(v>.18&&v<.88&&xx>.16&&xx<.22)return bd;
+        if(v>=.65&&xx>.02&&xx<.12)return bd;
+        return null;
+      }]);
+    }
+  });
   S.sort((a,b)=>Math.hypot(b[0]-ox,b[1]-oy)-Math.hypot(a[0]-ox,a[1]-oy)).forEach(s=>spr(...s));
   octx.putImageData(img,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(oc,0,0,W,W);
 
@@ -1253,7 +1564,7 @@ function draw3d(){
     ctx.restore();
   }
 
-  if(E.st==='windup'||E.st==='chase'){
+  if(enemies.some(e=>e.st==='windup'||e.st==='chase')){
     const rgr=ctx.createRadialGradient(W/2,W/2,W*.3,W/2,W/2,W*.7);
     rgr.addColorStop(0,'rgba(0,0,0,0)');
     rgr.addColorStop(1,'rgba(180,15,15,'+(.22+.1*Math.sin(tm/90))+')');
@@ -1448,35 +1759,37 @@ function drawMinimap(){
   });
 
   // 8. Hunter SCP-096 (matching draw2d)
-  const ex_grid=Math.round(E.fx),ey_grid=Math.round(E.fy);
-  const edx=ex_grid-pcx,edy=ey_grid-pcy;
-  if(Math.abs(edx)<=R&&Math.abs(edy)<=R&&lit(ex_grid,ey_grid)){
-    const ex=(E.fx-pcx+R)*T+T/2,ey=(E.fy-pcy+R)*T+T/2;
-    const rage=E.st==='chase'||E.st==='windup';
-    const sh=E.st==='windup'?(Math.random()-0.5)*2:0;
+  enemies.forEach(e=>{
+    const ex_grid=Math.round(e.fx),ey_grid=Math.round(e.fy);
+    const edx=ex_grid-pcx,edy=ey_grid-pcy;
+    if(Math.abs(edx)<=R&&Math.abs(edy)<=R&&lit(ex_grid,ey_grid)){
+      const ex=(e.fx-pcx+R)*T+T/2,ey=(e.fy-pcy+R)*T+T/2;
+      const rage=e.st==='chase'||e.st==='windup';
+      const sh=e.st==='windup'?(Math.random()-0.5)*2:0;
 
-    mctx.fillStyle='rgba(0,0,0,0.45)';
-    mctx.beginPath();mctx.ellipse(ex,ey+5,8,3,0,0,7);mctx.fill();
+      mctx.fillStyle='rgba(0,0,0,0.45)';
+      mctx.beginPath();mctx.ellipse(ex,ey+5,8,3,0,0,7);mctx.fill();
 
-    mctx.save();
-    mctx.translate(ex+sh,ey);
-    const bc=rage?'#ff5240':(E.st==='stun'?'#8ab4c0':'#6ee7d9');
+      mctx.save();
+      mctx.translate(ex+sh,ey);
+      const bc=rage?'#ff5240':(e.st==='stun'?'#8ab4c0':'#6ee7d9');
 
-    mctx.globalAlpha=0.25;
-    mctx.fillStyle=bc;
-    mctx.beginPath();mctx.arc(0,0,11,0,7);mctx.fill();
-    mctx.globalAlpha=1;
+      mctx.globalAlpha=0.25;
+      mctx.fillStyle=bc;
+      mctx.beginPath();mctx.arc(0,0,11,0,7);mctx.fill();
+      mctx.globalAlpha=1;
 
-    mctx.fillStyle=bc;
-    mctx.beginPath();mctx.arc(0,0,6.5,0,7);mctx.fill();
+      mctx.fillStyle=bc;
+      mctx.beginPath();mctx.arc(0,0,6.5,0,7);mctx.fill();
 
-    mctx.fillStyle=rage?'#2a0505':'#0a2222';
-    mctx.beginPath();mctx.arc(-2.5,-1,1.5,0,7);mctx.arc(2.5,-1,1.5,0,7);mctx.fill();
+      mctx.fillStyle=rage?'#2a0505':'#0a2222';
+      mctx.beginPath();mctx.arc(-2.5,-1,1.5,0,7);mctx.arc(2.5,-1,1.5,0,7);mctx.fill();
 
-    mctx.fillStyle=rage?'#ffd0c8':'#b7fff2';
-    mctx.fillRect(-4,3,8,1.5);
-    mctx.restore();
-  }
+      mctx.fillStyle=rage?'#ffd0c8':'#b7fff2';
+      mctx.fillRect(-4,3,8,1.5);
+      mctx.restore();
+    }
+  });
 
   // 9. Player (matching draw2d)
   const centerPos=R*T+T/2;
@@ -1552,19 +1865,23 @@ function drawMinimap(){
   }
 
   // BFS path debug overlay if active
-  if(bfsDebug&&E.path&&E.path.length>0){
-    mctx.save();
-    mctx.strokeStyle='rgba(77,224,255,0.85)';
-    mctx.lineWidth=2;
-    mctx.setLineDash([3,3]);
-    mctx.beginPath();
-    mctx.moveTo((E.fx-pcx+R)*T+T/2,(E.fy-pcy+R)*T+T/2);
-    for(let p of E.path){
-      mctx.lineTo((p[0]-pcx+R)*T+T/2,(p[1]-pcy+R)*T+T/2);
-    }
-    mctx.lineTo(centerPos,centerPos);
-    mctx.stroke();
-    mctx.restore();
+  if(bfsDebug){
+    enemies.forEach(e=>{
+      if(e.path&&e.path.length>0){
+        mctx.save();
+        mctx.strokeStyle='rgba(77,224,255,0.85)';
+        mctx.lineWidth=2;
+        mctx.setLineDash([3,3]);
+        mctx.beginPath();
+        mctx.moveTo((e.fx-pcx+R)*T+T/2,(e.fy-pcy+R)*T+T/2);
+        for(let p of e.path){
+          mctx.lineTo((p[0]-pcx+R)*T+T/2,(p[1]-pcy+R)*T+T/2);
+        }
+        mctx.lineTo(centerPos,centerPos);
+        mctx.stroke();
+        mctx.restore();
+      }
+    });
   }
 
   // Frame border
@@ -1591,6 +1908,18 @@ const map={
 
 addEventListener('keydown',e=>{
   const key=e.key.toLowerCase();
+  if(!gameStarted){
+    if(key==='1'){selectDifficulty('easy');e.preventDefault();return}
+    if(key==='2'){selectDifficulty('moderate');e.preventDefault();return}
+    if(key==='3'){selectDifficulty('hard');e.preventDefault();return}
+    if(key==='4'){selectDifficulty('hardest');e.preventDefault();return}
+    if(key===' '||key==='f'||key==='enter'){
+      startGame();
+      e.preventDefault();
+      return;
+    }
+    return;
+  }
   if(key==='escape'){
     if(helpOpen){
       e.preventDefault();
@@ -1647,12 +1976,53 @@ if(togglePadBtn&&padEl){
   });
 }
 
+// ============================================================================
+// START SCREEN & DIFFICULTY SELECTION SYSTEM
+// ============================================================================
+function selectDifficulty(diffKey){
+  if(!DIFFICULTIES[diffKey])return;
+  currentDifficulty=DIFFICULTIES[diffKey];
+  document.querySelectorAll('.diff-card').forEach(card=>{
+    card.classList.toggle('selected',card.dataset.diff===diffKey);
+  });
+  if(!gameStarted){
+    init();
+  }
+}
+
+function startGame(){
+  if(gameStarted)return;
+  gameStarted=true;
+  const modal=document.getElementById('start-modal');
+  if(modal)modal.classList.remove('active');
+  init();
+  last=performance.now();
+  say('Difficulty: '+currentDifficulty.name+' — Find 3 keys & reach exit!');
+}
+
+const startBtn=document.getElementById('start-btn');
+if(startBtn)startBtn.addEventListener('click',startGame);
+
+document.querySelectorAll('.diff-card').forEach(card=>{
+  card.addEventListener('click',()=>{
+    const diff=card.dataset.diff;
+    if(diff)selectDifficulty(diff);
+  });
+  card.addEventListener('dblclick',()=>{
+    const diff=card.dataset.diff;
+    if(diff){
+      selectDifficulty(diff);
+      startGame();
+    }
+  });
+});
+
 let last=performance.now();
 function loop(now){
   const dt=Math.min(.05,(now-last)/1000);
   last=now;
   DT=dt;
-  if(!isPaused)update(dt);
+  if(gameStarted&&!isPaused)update(dt);
   draw();
   requestAnimationFrame(loop);
 }
