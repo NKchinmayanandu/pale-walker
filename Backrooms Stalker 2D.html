@@ -4,31 +4,45 @@
 <title>Backrooms Stalker 2D</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#080b0d;--fg:#e8e2c8;--btn:#22222a}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;user-select:none;touch-action:manipulation}
-canvas{width:100%;max-width:560px;height:auto;aspect-ratio:1;background:#06080a;border:1px solid #4c666b;border-radius:6px;image-rendering:pixelated}
-#hud{max-width:560px;text-align:center;line-height:1.4;padding:6px 11px;background:#111a1dca;border:1px solid #4c666b;border-radius:7px;font-weight:800;text-shadow:2px 2px #000}
-#msg{min-height:18px;color:#ff8a6a}
-#pad{display:grid;grid-template-columns:repeat(3,64px);gap:6px}
-#pad button{height:46px;border:1px solid #90a7aa99;border-radius:8px;background:#172326cc;color:var(--fg);font-size:15px;cursor:pointer}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:14px system-ui,-apple-system,sans-serif;user-select:none;touch-action:manipulation}
+#viewport{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#030507}
+canvas#c{max-width:100vw;max-height:100vh;width:100vmin;height:100vmin;aspect-ratio:1;background:#06080a;border:1px solid #4c666b;border-radius:4px;image-rendering:pixelated;box-shadow:0 0 40px rgba(0,0,0,0.9)}
+#hud-wrap{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:20;pointer-events:none;width:calc(100% - 24px);max-width:840px}
+#hud{pointer-events:auto;width:100%;text-align:center;line-height:1.4;padding:7px 14px;background:#111a1dca;border:1px solid #4c666b;border-radius:8px;font-weight:800;text-shadow:2px 2px #000;backdrop-filter:blur(6px);box-shadow:0 4px 20px rgba(0,0,0,0.6);font-size:13.5px}
+#msg{pointer-events:auto;min-height:18px;color:#ff8a6a;font-weight:700;text-shadow:1px 1px 3px #000;background:rgba(10,16,19,0.85);padding:2px 12px;border-radius:5px;border:1px solid rgba(76,102,107,0.4)}
+#bottom-wrap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;z-index:20;pointer-events:none;max-width:98vw}
+#pad{pointer-events:auto;display:grid;grid-template-columns:repeat(3,64px);gap:5px;background:rgba(15,24,27,0.85);padding:6px;border-radius:10px;border:1px solid rgba(76,102,107,0.6);backdrop-filter:blur(6px);box-shadow:0 4px 18px rgba(0,0,0,0.6);transition:transform 0.2s ease,opacity 0.2s ease}
+#pad.collapsed{display:none}
+#pad button{height:42px;border:1px solid #90a7aa99;border-radius:8px;background:#172326dd;color:var(--fg);font-size:14px;cursor:pointer;user-select:none;touch-action:manipulation}
 #pad button:active{background:#444}
 #pad button.active{background:#2a5058;border-color:#52d3eb;color:#aff4ff}
-small{opacity:.7;max-width:560px;text-align:center;line-height:1.4}
+#bar-controls{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:8px}
+.bar-btn{height:28px;padding:0 12px;border:1px solid rgba(76,102,107,0.8);border-radius:6px;background:rgba(17,26,29,0.85);color:var(--fg);font-size:12px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px)}
+.bar-btn:active{background:#334}
+small{pointer-events:auto;opacity:0.8;max-width:760px;text-align:center;line-height:1.3;font-size:11px;background:rgba(8,11,13,0.78);padding:3px 10px;border-radius:4px;border:1px solid rgba(76,102,107,0.3)}
 </style></head><body>
-<div id="hud"></div><div id="msg"></div>
-<canvas id="c" width="992" height="992"></canvas>
+<div id="viewport">
+<div id="hud-wrap"><div id="hud"></div><div id="msg"></div></div>
+<canvas id="c" width="1632" height="1632"></canvas>
+<div id="bottom-wrap">
 <div id="pad">
 <button data-k="snap">⟲ 180</button><button data-k="up">▲</button><button data-k="sprint">Sprint</button>
 <button data-k="left">◀</button><button data-k="down">▼</button><button data-k="right">▶</button>
 <button data-k="stun">Stun</button><button data-k="block">Block</button><button data-k="restart">Restart</button>
 <button data-k="mode">View: 2D</button><button data-k="use">E pick up</button><button data-k="debug">BFS: OFF</button>
 </div>
+<div id="bar-controls">
+<button id="fs-btn" class="bar-btn">⛶ Fullscreen</button>
+<button id="toggle-pad-btn" class="bar-btn">⌨ Controls: On</button>
+</div>
 <small>C switch 2D top-down / 3D first-person · 2D: arrows/WASD move on screen, auto pickup · 3D: ◀▶ turn, ▲ walk, E pick up · B toggle BFS debug path · Space 180° · Shift sprint · 1 stun shot · 2 block · R restart</small>
+</div>
+</div>
 <script>
 // ============================================================================
 // CONSTANTS & SEPARATE TILE ASSET LOADER (Assets/tiles/)
 // ============================================================================
-const N = 31, TILE_SIZE = 32, W = N * TILE_SIZE, V = 2.8, DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+const N = 51, TILE_SIZE = 32, W = N * TILE_SIZE, V = 2.8, DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const cv = document.getElementById('c'), ctx = cv.getContext('2d'), hud = document.getElementById('hud'), msgEl = document.getElementById('msg');
 
 // Load individual cut asset files
@@ -109,26 +123,28 @@ function say(t) { msgEl.textContent = t; }
 // ============================================================================
 function generateRooms() {
   rooms = [];
-  // 1. Central Hall (5x5)
+  // 1. Central Hall (5x5) aligned to odd coordinates
   const cw = 5, ch = 5;
-  const cx = Math.floor((N - cw) / 2), cy = Math.floor((N - ch) / 2);
+  let cx = Math.floor((N - cw) / 2), cy = Math.floor((N - ch) / 2);
+  if (cx % 2 === 0) cx += 1;
+  if (cy % 2 === 0) cy += 1;
   rooms.push({x: cx, y: cy, w: cw, h: ch, isHall: true});
   for (let y = cy; y < cy + ch; y++) {
     for (let x = cx; x < cx + cw; x++) g[y][x] = 0;
   }
 
-  // 2. Side rooms
-  const targetRooms = 7;
+  // 2. Side chambers scattered across the maze
+  const targetRooms = 8;
   let attempts = 0;
-  while (rooms.length < targetRooms && attempts < 120) {
+  while (rooms.length < targetRooms && attempts < 300) {
     attempts++;
-    const rw = 3 + Math.floor(rng() * 3);
-    const rh = 3 + Math.floor(rng() * 3);
-    const rx = 2 + Math.floor(rng() * (N - rw - 3));
-    const ry = 2 + Math.floor(rng() * (N - rh - 3));
+    const rw = rng() < 0.5 ? 3 : 5;
+    const rh = rng() < 0.5 ? 3 : 5;
+    const rx = 1 + Math.floor(rng() * ((N - rw - 2) / 2)) * 2;
+    const ry = 1 + Math.floor(rng() * ((N - rh - 2) / 2)) * 2;
     let overlap = false;
     for (let r of rooms) {
-      if (!(rx + rw + 1 < r.x || rx > r.x + r.w + 1 || ry + rh + 1 < r.y || ry > r.y + r.h + 1)) {
+      if (!(rx + rw + 2 < r.x || rx > r.x + r.w + 2 || ry + rh + 2 < r.y || ry > r.y + r.h + 2)) {
         overlap = true;
         break;
       }
@@ -142,30 +158,94 @@ function generateRooms() {
   }
 }
 
-function connectRooms() {
-  for (let i = 0; i < rooms.length; i++) {
-    const r1 = rooms[i];
-    const r2 = rooms[(i + 1) % rooms.length];
-    const x1 = r1.x + Math.floor(r1.w / 2), y1 = r1.y + Math.floor(r1.h / 2);
-    const x2 = r2.x + Math.floor(r2.w / 2), y2 = r2.y + Math.floor(r2.h / 2);
-    if (rng() < 0.5) {
-      for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) g[y1][x] = 0;
-      for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) g[y][x2] = 0;
-    } else {
-      for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) g[y][x1] = 0;
-      for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) g[y2][x] = 0;
+function carveMazeCorridors() {
+  const visited = Array.from({length: N}, () => Array(N).fill(false));
+  for (let r of rooms) {
+    for (let y = r.y; y < r.y + r.h; y++) {
+      for (let x = r.x; x < r.x + r.w; x++) {
+        visited[y][x] = true;
+      }
     }
   }
-  const hall = rooms[0];
-  for (let i = 1; i < rooms.length; i++) {
-    if (rng() < 0.45) {
-      const r = rooms[i];
-      const x1 = r.x + Math.floor(r.w / 2), y1 = r.y + Math.floor(r.h / 2);
-      const x2 = hall.x + Math.floor(hall.w / 2), y2 = hall.y + Math.floor(hall.h / 2);
-      for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) g[y1][x] = 0;
-      for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) g[y][x2] = 0;
+
+  // Carve labyrinth passages using Randomized Backtracker (DFS)
+  for (let startY = 1; startY < N - 1; startY += 2) {
+    for (let startX = 1; startX < N - 1; startX += 2) {
+      if (visited[startY][startX]) continue;
+      const stack = [[startX, startY]];
+      visited[startY][startX] = true;
+      g[startY][startX] = 0;
+
+      while (stack.length > 0) {
+        const [cx_s, cy_s] = stack[stack.length - 1];
+        const dirs = [
+          [0, -2, 0, -1],
+          [2, 0, 1, 0],
+          [0, 2, 0, 1],
+          [-2, 0, -1, 0]
+        ];
+        for (let i = dirs.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+        }
+
+        let carved = false;
+        for (let [ddx, ddy, wx, wy] of dirs) {
+          const nx = cx_s + ddx, ny = cy_s + ddy;
+          if (nx > 0 && nx < N - 1 && ny > 0 && ny < N - 1) {
+            if (!visited[ny][nx]) {
+              visited[ny][nx] = true;
+              g[cy_s + wy][cx_s + wx] = 0;
+              g[ny][nx] = 0;
+              stack.push([nx, ny]);
+              carved = true;
+              break;
+            }
+          }
+        }
+        if (!carved) {
+          stack.pop();
+        }
+      }
     }
   }
+
+  // Connect rooms into the maze network (1-3 doorways each)
+  for (let r of rooms) {
+    const doorways = [];
+    for (let x = r.x; x < r.x + r.w; x += 2) {
+      if (r.y - 2 > 0 && g[r.y - 2][x] === 0) doorways.push([x, r.y - 1]);
+      if (r.y + r.h + 1 < N - 1 && g[r.y + r.h + 1][x] === 0) doorways.push([x, r.y + r.h]);
+    }
+    for (let y = r.y; y < r.y + r.h; y += 2) {
+      if (r.x - 2 > 0 && g[y][r.x - 2] === 0) doorways.push([r.x - 1, y]);
+      if (r.x + r.w + 1 < N - 1 && g[y][r.x + r.w + 1] === 0) doorways.push([r.x + r.w, y]);
+    }
+    for (let i = doorways.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [doorways[i], doorways[j]] = [doorways[j], doorways[i]];
+    }
+    const numDoors = Math.max(1, Math.min(doorways.length, 2 + Math.floor(rng() * 2)));
+    for (let d = 0; d < Math.min(numDoors, doorways.length); d++) {
+      const [dx, dy] = doorways[d];
+      g[dy][dx] = 0;
+    }
+  }
+
+  // Add braiding / loops (~18% cross connections) for confusing paths and escape routes
+  for (let y = 2; y < N - 2; y++) {
+    for (let x = 2; x < N - 2; x++) {
+      if (g[y][x] === 1) {
+        const hConnect = (g[y][x - 1] === 0 && g[y][x + 1] === 0 && g[y - 1][x] === 1 && g[y + 1][x] === 1);
+        const vConnect = (g[y - 1][x] === 0 && g[y + 1][x] === 0 && g[y][x - 1] === 1 && g[y][x + 1] === 1);
+        if ((hConnect || vConnect) && rng() < 0.18) {
+          g[y][x] = 0;
+        }
+      }
+    }
+  }
+
+  // Enforce solid boundary walls
   for (let i = 0; i < N; i++) {
     g[0][i] = 1; g[N - 1][i] = 1; g[i][0] = 1; g[i][N - 1] = 1;
   }
@@ -182,6 +262,14 @@ function placeDoors() {
         doors.push({x, y: r.y + r.h - 1, open: false});
       }
     }
+    for (let y = r.y; y < r.y + r.h; y++) {
+      if (r.x > 1 && g[y][r.x - 1] === 0 && g[y][r.x] === 0 && !doors.some(d => d.x === r.x && d.y === y)) {
+        doors.push({x: r.x, y, open: false});
+      }
+      if (r.x + r.w < N - 1 && g[y][r.x + r.w] === 0 && g[y][r.x + r.w - 1] === 0 && !doors.some(d => d.x === r.x + r.w - 1 && d.y === y)) {
+        doors.push({x: r.x + r.w - 1, y, open: false});
+      }
+    }
   }
 }
 
@@ -191,7 +279,7 @@ function placeTorches() {
   for (let y = 1; y < N - 2; y++) {
     for (let x = 1; x < N - 1; x++) {
       if (g[y][x] === 1 && g[y + 1][x] === 0) {
-        if (rng() < 0.15) {
+        if (rng() < 0.07) {
           torches.push({x, y, id: id++});
         }
       }
@@ -228,14 +316,15 @@ function placeDecorations() {
 }
 
 function validateDungeon() {
-  const res = bfs(P.cx, P.cy, E.cx, E.cy);
-  return res !== null && E.path && E.path.length > 0;
+  const resE = bfs(P.cx, P.cy, E.cx, E.cy);
+  const resExit = bfs(P.cx, P.cy, exitPos.x, exitPos.y);
+  return resE !== null && E.path && E.path.length > 0 && resExit !== null;
 }
 
 function generateDungeon() {
   g = Array.from({length: N}, () => Array(N).fill(1));
   generateRooms();
-  connectRooms();
+  carveMazeCorridors();
   placeDoors();
   placeTorches();
   placeDecorations();
@@ -274,6 +363,8 @@ function init() {
   currentSeed = Math.floor(Math.random() * 900000) + 100000;
   rng = mulberry32(currentSeed);
   blocks = []; traps = []; items = [];
+  cv.width = cv.height = W;
+  lightCanvas.width = lightCanvas.height = W;
   let R, lc;
   for (;;) {
     generateDungeon();
@@ -933,7 +1024,7 @@ function draw3d(){
     const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry);
     if(rx<0){sx=-1;sdx=(ox-mx)*ddx}else{sx=1;sdx=(mx+1-ox)*ddx}
     if(ry<0){sy=-1;sdy=(oy-my)*ddy}else{sy=1;sdy=(my+1-oy)*ddy}
-    for(let i=0;i<80&&!hit;i++){
+    for(let i=0;i<120&&!hit;i++){
       if(sdx<sdy){sdx+=ddx;mx+=sx;side=0}else{sdy+=ddy;my+=sy;side=1}
       if(mx<0||my<0||mx>=N||my>=N||g[my][mx]!==0||isBlock(mx,my))hit=1;
     }
@@ -1003,45 +1094,33 @@ document.querySelectorAll('#pad button').forEach(b => {
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => release(k)));
 });
 
-let last = performance.now();
-function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
-  DT = dt;
-  update(dt);
-  draw();
-  requestAnimationFrame(loop);
+// Fullscreen toggle button
+const fsBtn = document.getElementById('fs-btn');
+if (fsBtn) {
+  fsBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  });
 }
-
-init();
-requestAnimationFrame(loop);
-</script></body></html>
-
-function draw() { mode === 'rel' ? draw3d() : draw2d(); }
-
-const map = {
-  e: 'use', arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down',
-  arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right',
-  ' ': 'snap', shift: 'sprint', '1': 'stun', '2': 'block',
-  r: 'restart', c: 'mode', b: 'debug'
-};
-
-addEventListener('keydown', e => {
-  const k = map[e.key.toLowerCase()];
-  if (!k) return;
-  e.preventDefault();
-  if (e.repeat) return;
-  press(k);
+document.addEventListener('fullscreenchange', () => {
+  if (fsBtn) {
+    fsBtn.textContent = document.fullscreenElement ? '✕ Window' : '⛶ Fullscreen';
+  }
 });
-addEventListener('keyup', e => {
-  const k = map[e.key.toLowerCase()];
-  if (k) release(k);
-});
-document.querySelectorAll('#pad button').forEach(b => {
-  const k = b.dataset.k;
-  b.addEventListener('pointerdown', e => { e.preventDefault(); press(k); });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => release(k)));
-});
+
+// On-screen controls visibility toggle button
+const togglePadBtn = document.getElementById('toggle-pad-btn');
+const padEl = document.getElementById('pad');
+if (togglePadBtn && padEl) {
+  togglePadBtn.addEventListener('click', () => {
+    padEl.classList.toggle('collapsed');
+    const isCollapsed = padEl.classList.contains('collapsed');
+    togglePadBtn.textContent = isCollapsed ? '⌨ Controls: Off' : '⌨ Controls: On';
+  });
+}
 
 let last = performance.now();
 function loop(now) {
