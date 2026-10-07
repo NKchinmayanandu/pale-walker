@@ -117,7 +117,7 @@ maze_runner/
 │       ├── crate.png / barrel.png # Obstacles & barricades
 │       ├── bones.png / blood.png  # Atmospheric decor
 │       └── crystal_*.png          # Power-up items
-├── Backrooms Stalker 2D.html      # Complete standalone game
+├── home.html                      # Complete standalone game
 └── README.md                      # Documentation
 ```
 
@@ -128,7 +128,7 @@ maze_runner/
 Because the project is built with zero external dependencies, you can run it immediately without installing any build tools:
 
 ### Option 1: Direct File Launch
-Double-click `Backrooms Stalker 2D.html` or open it directly in any modern browser (Chrome, Firefox, Safari, Edge).
+Double-click `home.html` or open it directly in any modern browser (Chrome, Firefox, Safari, Edge).
 
 ### Option 2: Local HTTP Server (Recommended)
 Using Python's built-in server:
@@ -136,7 +136,7 @@ Using Python's built-in server:
 # From the project directory:
 python3 -m http.server 8000
 ```
-Then navigate to `http://localhost:8000/Backrooms%20Stalker%202D.html` in your browser.
+Then navigate to `http://localhost:8000/home.html` in your browser.
 
 ---
 
@@ -151,17 +151,3 @@ Then navigate to `http://localhost:8000/Backrooms%20Stalker%202D.html` in your b
 - **Lighting Pipeline**:
   - Offscreen lighting canvas utilizing `destination-out` blending to dynamically carve glowing radial vision fields out of a `0.93` opacity darkness layer.
   - Additive canvas composition (`lighter`) produces warm orange ambient tints surrounding torch fixtures.
-EOF
-`
-Viewed README.md:1-50
-
-I have created a comprehensive [README.md](file:///home/vanilla/Desktop/hackathon/maze_runner/README.md) for **Backrooms Stalker 2D** without modifying any code files.
-
-### Contents Included in `README.md`:
-- **Overview**: Core game concept, survival objectives (find Torch, 3 Keys, reach Exit Stairs).
-- **Features**: Dual 2D/3D perspective system, room-first dungeon generator, SCP-096 inspired stalker AI, dynamic torch lighting, abilities & defenses, fullscreen support, and zero-dependency architecture.
-- **Controls & Keybindings**: Full reference table for keyboard and touch/on-screen controls, with notes explaining differences between 2D and 3D modes.
-- **How to Play**: Phase-by-phase gameplay guide from preparation to escape.
-- **Project Structure**: Breakdown of the repository files and asset tileset.
-- **Running the Game**: Quickstart instructions for direct file launch and local Python server.
-- **Technical Details**: Overview of BFS pathfinding, 3D DDA raycasting, and offscreen lighting composition pipelines.

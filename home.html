@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Backrooms Stalker 2D</title>
+<title>PALE WALKER</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#080b0d;--fg:#e8e2c8;--btn:#22222a}
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:14px system-ui,-apple-system,sans-serif;user-select:none;touch-action:manipulation}
@@ -1729,17 +1729,84 @@ function draw2d(){
 
 function tail(){
   if(over){
-    ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,W);
-    const bw=W*.78,bh=W*.3,bx=(W-bw)/2,by=(W-bh)/2;
-    ctx.fillStyle='#0a1012';ctx.strokeStyle='#80969b';ctx.lineWidth=2;
-    ctx.fillRect(bx,by,bw,bh);ctx.strokeRect(bx,by,bw,bh);
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle='rgba(3,5,8,0.78)';
+    ctx.fillRect(0,0,W,W);
+
+    const isWin=over==='win';
+    const bw=W*0.74,bh=W*0.44,bx=(W-bw)/2,by=(W-bh)/2;
+
+    // Card background & glowing border
+    ctx.fillStyle='rgba(13,20,24,0.96)';
+    ctx.strokeStyle=isWin?'#ffd45c':'#ff5240';
+    ctx.lineWidth=2.5;
+    ctx.shadowColor=isWin?'rgba(255,212,92,0.4)':'rgba(255,82,64,0.45)';
+    ctx.shadowBlur=28;
+    ctx.beginPath();
+    ctx.roundRect(bx,by,bw,bh,14);
+    ctx.fill();
+    ctx.stroke();
+
+    // Top Header Pill
+    ctx.shadowBlur=0;
+    const pillW=bw*0.48,pillH=28,pillX=bx+(bw-pillW)/2,pillY=by+18;
+    ctx.fillStyle=isWin?'rgba(255,212,92,0.18)':'rgba(255,82,64,0.2)';
+    ctx.strokeStyle=isWin?'#ffd45c':'#ff5240';
+    ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.roundRect(pillX,pillY,pillW,pillH,6);
+    ctx.fill();
+    ctx.stroke();
+
     ctx.textAlign='center';
-    ctx.fillStyle=over==='win'?'#ffd45c':'#ff6a5a';
-    ctx.font='900 '+W*.05+'px system-ui,sans-serif';
-    ctx.fillText(over==='win'?'YOU ESCAPED!':'THE HUNTER CAUGHT YOU',W/2,by+bh*.4);
-    ctx.fillStyle='#b9c5c7';ctx.font=W*.03+'px system-ui,sans-serif';
-    ctx.fillText(over==='win'?'The maze could not stop you.':'It tracked your route.',W/2,by+bh*.62);
-    ctx.fillStyle='#d9a441';ctx.fillText('Press R or tap Restart',W/2,by+bh*.84);
+    ctx.textBaseline='middle';
+    ctx.fillStyle=isWin?'#ffd45c':'#ff7566';
+    ctx.font='800 12px system-ui,sans-serif';
+    ctx.fillText(isWin?'★ MISSION ACCOMPLISHED ★':'☠ TERMINATED BY 096 ☠',W/2,pillY+pillH/2);
+
+    // Main Big Title
+    ctx.fillStyle=isWin?'#ffffff':'#ff5240';
+    ctx.font='900 '+Math.round(W*0.052)+'px system-ui,sans-serif';
+    ctx.shadowColor=isWin?'rgba(255,212,92,0.6)':'rgba(255,82,64,0.6)';
+    ctx.shadowBlur=12;
+    ctx.fillText(isWin?'YOU ESCAPED!':'THE HUNTER CAUGHT YOU',W/2,by+bh*0.36);
+
+    // Subtitle / Narrative
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#c8d7da';
+    ctx.font='600 '+Math.round(W*0.026)+'px system-ui,sans-serif';
+    const subText=isWin
+      ?'All 3 keys gathered · You broke free from the complex.'
+      :(enemies.some(e=>e.st==='chase')?'It caught your direct gaze and tore through the halls.':'It silently stalked your footsteps through the dark.');
+    ctx.fillText(subText,W/2,by+bh*0.52);
+
+    // Stats bar divider & info
+    ctx.strokeStyle='rgba(76,102,107,0.45)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(bx+30,by+bh*0.64);
+    ctx.lineTo(bx+bw-30,by+bh*0.64);
+    ctx.stroke();
+
+    ctx.fillStyle='#8fa5a8';
+    ctx.font='700 12px system-ui,sans-serif';
+    ctx.fillText('DIFFICULTY: '+currentDifficulty.name.toUpperCase()+'   ·   KEYS: '+P.keys+'/3   ·   SEED #'+currentSeed,W/2,by+bh*0.73);
+
+    // Action callout box
+    const btnW=bw*0.58,btnH=34,btnX=bx+(bw-btnW)/2,btnY=by+bh*0.82;
+    ctx.fillStyle=isWin?'#25707d':'#362224';
+    ctx.strokeStyle=isWin?'#52d3eb':'#ff7566';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.roundRect(btnX,btnY,btnW,btnH,8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle='#ffffff';
+    ctx.font='800 13px system-ui,sans-serif';
+    ctx.fillText('Press [R] to Play Again',W/2,btnY+btnH/2);
+
     ctx.restore();
   }
   // CENTER-SCREEN NOTIFICATION OVERLAY (0.8s on item pickup / wake / 3 keys)
@@ -1818,6 +1885,7 @@ const RW=240,buf=new Uint32Array(RW*RW),zb=new Float32Array(RW),oc=document.crea
 oc.width=oc.height=RW;
 const octx=oc.getContext('2d'),img=new ImageData(new Uint8ClampedArray(buf.buffer),RW,RW);
 let camA=null,curFov=0.92,DT=.016;
+let walkBobT=0;
 const pxc=(r,g,b)=>0xFF000000|((Math.min(255,b|0))<<16)|((Math.min(255,g|0))<<8)|Math.min(255,r|0);
 const lightAt=(x,y,d)=>dark(x,y)?(P.torch?Math.pow(Math.max(0,1-d/3.8),1.2):0):Math.max(.38,1-d/currentDifficulty.viewDist3D);
 function wallRGB(mx,my,u,v){
@@ -1834,7 +1902,11 @@ function draw3d(){
   const isRunning=P.sprintT>0||P.adr>0;
   const targetFov=isRunning?1.45:0.92;
   curFov+=(targetFov-curFov)*Math.min(1,DT*10);
-  const dx=Math.cos(camA),dy=Math.sin(camA),plx=-dy*curFov,ply=dx*curFov,ox=P.fx+.5,oy=P.fy+.5,h=RW/2,tm=performance.now();
+  if(P.mv){
+    walkBobT+=(isRunning?16:9)*DT;
+  }
+  const bobOffset=P.mv?Math.sin(walkBobT)*(isRunning?3.2:1.8):0;
+  const dx=Math.cos(camA),dy=Math.sin(camA),plx=-dy*curFov,ply=dx*curFov,ox=P.fx+.5,oy=P.fy+.5,h=RW/2+bobOffset,tm=performance.now();
 
   for(let y=0;y<RW;y++){
     const p=y-h,rd=h/(Math.abs(p)+.5),fl=p>=0,t=y/RW;
