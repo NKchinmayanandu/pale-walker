@@ -1,5 +1,5 @@
 
-# 🏰 Backrooms Stalker 2D
+# 🏰 PALE WALKER
 
 > A survival-horror retro dungeon crawler featuring dual-perspective gameplay (2D Top-Down and 3D Pseudo-Raycaster), procedural room-first generation, dynamic torch lighting, and an relentless hunting entity powered by BFS pathfinding.
 
@@ -7,7 +7,7 @@
 
 ## 🎮 Overview
 
-**Backrooms Stalker 2D** places you inside an ancient, procedurally generated stone labyrinth. Trapped in the dark corridors with an ominous stalking entity, your objective is simple yet terrifying:
+**PALE WALKER** places you inside an ancient, procedurally generated stone labyrinth. Trapped in the dark corridors with an ominous stalking entity, your objective is simple yet terrifying:
 1. Find the **Torch** to navigate pitch-black dark zones.
 2. Locate all **3 Keys** scattered across the dungeon chambers.
 3. Reach the **Exit Stairs** before the hunter catches you.
