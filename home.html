@@ -603,17 +603,33 @@ function wallSpriteForType(type,x,y,isDark){
 // ============================================================================
 // GAME INIT & ITEM PLACEMENT
 // ============================================================================
-function generateDungeon(){
+// GAME INIT & ITEM PLACEMENT (CORNER SPAWN & DIAGONAL OPPOSITE EXIT/ENEMY)
+// ============================================================================
+const CORNER_PAIRS=[
+  // Pair 0: Player Top-Left [1, 1] -> Enemy Bottom-Right [N-2, N-2], Exit at [N-1, N-2]
+  {p:[1,1],pDir:2,e:[N-2,N-2],exit:[N-1,N-2]},
+  // Pair 1: Player Top-Right [N-2, 1] -> Enemy Bottom-Left [1, N-2], Exit at [0, N-2]
+  {p:[N-2,1],pDir:2,e:[1,N-2],exit:[0,N-2]},
+  // Pair 2: Player Bottom-Left [1, N-2] -> Enemy Top-Right [N-2, 1], Exit at [N-1, 1]
+  {p:[1,N-2],pDir:0,e:[N-2,1],exit:[N-1,1]},
+  // Pair 3: Player Bottom-Right [N-2, N-2] -> Enemy Top-Left [1, 1], Exit at [0, 1]
+  {p:[N-2,N-2],pDir:0,e:[1,1],exit:[0,1]}
+];
+
+function generateDungeon(pair){
   g=Array.from({length:N},()=>Array(N).fill(1));
   generateRooms();
   carveMazeCorridors();
   placeTorchLights();
-  g[N-2][N-1]=2;
+  // Ensure player spawn corner and enemy corner are open passages
+  g[pair.p[1]][pair.p[0]]=0;
+  g[pair.e[1]][pair.e[0]]=0;
+  // Set exit on the outer boundary wall at the enemy's diagonal corner
+  g[pair.exit[1]][pair.exit[0]]=2;
 }
 
 function reach(){
-  const startRoom=rooms[1]||rooms[0];
-  const sx=startRoom.x+1,sy=startRoom.y+1;
+  const sx=P.cx,sy=P.cy;
   const R={};
   const k0=sx+','+sy;
   R[k0]=0;
@@ -644,31 +660,26 @@ function init(){
   currentSeed=Math.floor(Math.random()*900000)+100000;
   rng=mulberry32(currentSeed);
   blocks=[];traps=[];items=[];
+  camA=null;
   cv.width=cv.height=W;
   lightCanvas.width=lightCanvas.height=W;
-  let R,lc;
+  let R,lc,pair;
   for(;;){
-    generateDungeon();
-    const pRoom=rooms[1]||rooms[0];
-    P={cx:pRoom.x+1,cy:pRoom.y+1,fx:pRoom.x+1,fy:pRoom.y+1,tx:pRoom.x+1,ty:pRoom.y+1,mv:false,dir:2,keys:0,torch:false,stun:0,block:0,adr:0,sprintT:0,sprintCD:0};
+    pair=CORNER_PAIRS[Math.floor(rng()*CORNER_PAIRS.length)];
+    generateDungeon(pair);
+    P={cx:pair.p[0],cy:pair.p[1],fx:pair.p[0],fy:pair.p[1],tx:pair.p[0],ty:pair.p[1],mv:false,dir:pair.pDir,keys:0,torch:false,stun:0,block:0,adr:0,sprintT:0,sprintCD:0};
+    E={cx:pair.e[0],cy:pair.e[1],fx:pair.e[0],fy:pair.e[1],tx:pair.e[0],ty:pair.e[1],mv:false,st:'idle',t:0,path:[]};
     pickDark();
     R=reach();
     lc=Object.keys(R).filter(k=>R[k]>0);
-    if(lc.length>=10)break;
+    if(lc.length>=10&&bfs(P.cx,P.cy,E.cx,E.cy)!==null)break;
   }
   over=null;
   seen=Array.from({length:N},()=>Array(N).fill(false));
-  seen[N-2][N-1]=true;
+  seen[pair.exit[1]][pair.exit[0]]=true;
+  E.path=[];
 
-  let maxDist=-1,bestRoom=rooms[rooms.length-1];
-  for(let r of rooms){
-    const dist=Math.hypot(r.x-P.cx,r.y-P.cy);
-    if(dist>maxDist){maxDist=dist;bestRoom=r}
-  }
-  const eRoom=rooms.length>2?rooms[rooms.length-1]:bestRoom;
-  E={cx:eRoom.x+1,cy:eRoom.y+1,fx:eRoom.x+1,fy:eRoom.y+1,tx:eRoom.x+1,ty:eRoom.y+1,mv:false,st:'idle',t:0,path:[]};
-
-  const used=new Set([P.cx+','+P.cy,(N-2)+','+(N-1),E.cx+','+E.cy]);
+  const used=new Set([P.cx+','+P.cy,pair.exit[0]+','+pair.exit[1],E.cx+','+E.cy]);
 
   const pick=(d)=>{
     let x,y,k,tries=0;
