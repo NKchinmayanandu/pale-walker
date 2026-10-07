@@ -26,136 +26,50 @@ small{opacity:.7;max-width:560px;text-align:center;line-height:1.4}
 <small>C switch 2D top-down / 3D first-person · 2D: arrows/WASD move on screen, auto pickup · 3D: ◀▶ turn, ▲ walk, E pick up · B toggle BFS debug path · Space 180° · Shift sprint · 1 stun shot · 2 block · R restart</small>
 <script>
 // ============================================================================
-// CONSTANTS & ATLAS DEFINITION (SOURCE OF TRUTH: Assets/Gemini_Generated_Image_xjz5auxjz5auxjz5.png)
+// CONSTANTS & SEPARATE TILE ASSET LOADER (Assets/tiles/)
 // ============================================================================
 const N = 31, TILE_SIZE = 32, W = N * TILE_SIZE, V = 2.8, DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const cv = document.getElementById('c'), ctx = cv.getContext('2d'), hud = document.getElementById('hud'), msgEl = document.getElementById('msg');
 
-const atlas = new Image();
-atlas.src = 'Assets/Gemini_Generated_Image_xjz5auxjz5auxjz5.png';
-let atlasLoaded = false;
-atlas.onload = () => { atlasLoaded = true; };
+// Load individual cut asset files
+const TILE_NAMES = [
+  'wall_top', 'wall_bottom', 'wall_left', 'wall_right',
+  'wall_corner_tl', 'wall_corner_tr', 'wall_corner_bl', 'wall_corner_br',
+  'wall_solid', 'floor_normal', 'floor_cracked', 'floor_mossy', 'floor_broken',
+  'door_closed', 'door_open', 'key', 'torch', 'stairs',
+  'crate', 'barrel', 'bones', 'blood', 'crystal_cyan', 'crystal_purple'
+];
 
-// Offscreen canvas for dynamic torch lighting & fog of war
+const tiles = {};
+let loadedTiles = 0;
+TILE_NAMES.forEach(name => {
+  const img = new Image();
+  img.src = 'Assets/tiles/' + name + '.png';
+  img.onload = () => { loadedTiles++; };
+  tiles[name] = img;
+});
+
+// Offscreen canvas for dynamic torch lighting & ambient fog
 const lightCanvas = document.createElement('canvas');
 lightCanvas.width = lightCanvas.height = W;
 const lightCtx = lightCanvas.getContext('2d');
 
-const ATLAS = {
-  // Floors (150x150 tiles in rows 4 & 5)
-  floor_norm_0: {sx: 0, sy: 605, sw: 150, sh: 148},
-  floor_norm_1: {sx: 150, sy: 605, sw: 150, sh: 148},
-  floor_norm_2: {sx: 300, sy: 605, sw: 150, sh: 148},
-  floor_norm_3: {sx: 450, sy: 605, sw: 150, sh: 148},
-  floor_crack_0: {sx: 600, sy: 605, sw: 150, sh: 148},
-  floor_crack_1: {sx: 750, sy: 605, sw: 150, sh: 148},
-  floor_moss_0: {sx: 900, sy: 605, sw: 150, sh: 148},
-  floor_moss_1: {sx: 1050, sy: 605, sw: 150, sh: 148},
-  floor_stone_0: {sx: 1200, sy: 605, sw: 150, sh: 148},
-  floor_hole_0: {sx: 1350, sy: 605, sw: 150, sh: 148},
-  floor_heavy_crack: {sx: 600, sy: 755, sw: 150, sh: 148},
-  floor_void_pit: {sx: 750, sy: 755, sw: 150, sh: 148},
-  floor_heavy_moss: {sx: 900, sy: 755, sw: 150, sh: 148},
-  floor_vines: {sx: 1050, sy: 755, sw: 150, sh: 148},
-  floor_rubble: {sx: 1200, sy: 755, sw: 150, sh: 148},
-  // 2x2 Grand Stone Slab
-  floor_slab_tl: {sx: 1500, sy: 605, sw: 150, sh: 148},
-  floor_slab_tr: {sx: 1650, sy: 605, sw: 150, sh: 148},
-  floor_slab_bl: {sx: 1500, sy: 755, sw: 150, sh: 148},
-  floor_slab_br: {sx: 1650, sy: 755, sw: 150, sh: 148},
-
-  // Walls & Autotiling pieces (Rooms 0, 1, 2, 3 in Rows 0-3)
-  wall_corner_tl: {sx: 0, sy: 0, sw: 150, sh: 150},
-  wall_top_horiz: {sx: 150, sy: 0, sw: 150, sh: 150},
-  wall_corner_tr: {sx: 450, sy: 0, sw: 150, sh: 150},
-  wall_left_vert: {sx: 0, sy: 150, sw: 150, sh: 150},
-  wall_right_vert: {sx: 450, sy: 150, sw: 150, sh: 150},
-  wall_corner_bl: {sx: 0, sy: 450, sw: 150, sh: 150},
-  wall_bot_horiz: {sx: 150, sy: 450, sw: 150, sh: 150},
-  wall_corner_br: {sx: 450, sy: 450, sw: 150, sh: 150},
-  wall_horiz: {sx: 750, sy: 300, sw: 150, sh: 150},
-  wall_vert: {sx: 0, sy: 150, sw: 150, sh: 150},
-  wall_inner_tl: {sx: 150, sy: 300, sw: 150, sh: 150},
-  wall_inner_tr: {sx: 900, sy: 300, sw: 150, sh: 150},
-  wall_inner_bl: {sx: 750, sy: 300, sw: 150, sh: 150},
-  wall_inner_br: {sx: 1050, sy: 300, sw: 150, sh: 150},
-  wall_t_down: {sx: 1350, sy: 300, sw: 150, sh: 150},
-  wall_t_up: {sx: 900, sy: 0, sw: 150, sh: 150},
-  wall_t_left: {sx: 1650, sy: 150, sw: 150, sh: 150},
-  wall_t_right: {sx: 1200, sy: 150, sw: 150, sh: 150},
-  wall_cross: {sx: 1500, sy: 300, sw: 150, sh: 150},
-  wall_end_top: {sx: 1350, sy: 150, sw: 150, sh: 150},
-  wall_end_bot: {sx: 1500, sy: 150, sw: 150, sh: 150},
-  wall_end_left: {sx: 600, sy: 300, sw: 150, sh: 150},
-  wall_end_right: {sx: 1050, sy: 300, sw: 150, sh: 150},
-  wall_solid: {sx: 150, sy: 150, sw: 150, sh: 150},
-  wall_pillar: {sx: 1350, sy: 150, sw: 150, sh: 150},
-  wall_moss_horiz: {sx: 1350, sy: 0, sw: 150, sh: 150},
-  wall_crack_horiz: {sx: 1950, sy: 0, sw: 150, sh: 150},
-
-  // Doors & Arches (Row 7)
-  door_wood_closed: {sx: 19, sy: 1052, sw: 113, sh: 143},
-  door_wood_open: {sx: 170, sy: 1052, sw: 113, sh: 143},
-  door_double_open: {sx: 320, sy: 1052, sw: 112, sh: 143},
-  door_iron_gate: {sx: 618, sy: 1052, sw: 114, sh: 144},
-  door_iron_locked: {sx: 768, sy: 1052, sw: 114, sh: 143},
-  door_arch: {sx: 915, sy: 1050, sw: 122, sh: 146},
-  door_arch_dark: {sx: 1066, sy: 1050, sw: 119, sh: 146},
-  door_wood_locked: {sx: 2119, sy: 1052, sw: 111, sh: 144},
-
-  // Torches & Braziers (Row 10)
-  torch_unlit: {sx: 58, sy: 1520, sw: 33, sh: 103},
-  torch_lit_1: {sx: 208, sy: 1519, sw: 34, sh: 104},
-  torch_lit_2: {sx: 359, sy: 1505, sw: 32, sh: 125},
-  torch_lit_3: {sx: 505, sy: 1507, sw: 39, sh: 123},
-  brazier_1: {sx: 788, sy: 1511, sw: 73, sh: 126},
-  brazier_2: {sx: 938, sy: 1511, sw: 72, sh: 126},
-
-  // Items & Exit (Row 10 & 5)
-  key_iron: {sx: 1698, sy: 1524, sw: 48, sh: 97},
-  key_gold: {sx: 1827, sy: 1549, sw: 96, sh: 43},
-  crystal_purple: {sx: 1088, sy: 1524, sw: 74, sh: 96},
-  crystal_cyan: {sx: 1218, sy: 1513, sw: 115, sh: 122},
-  crystal_spire: {sx: 1389, sy: 1521, sw: 73, sh: 100},
-  stairs_down: {sx: 1800, sy: 755, sw: 150, sh: 148},
-  stairs_arch: {sx: 2250, sy: 605, sw: 150, sh: 148},
-  exit_shrine: {sx: 2112, sy: 1504, sw: 114, sh: 134},
-  exit_statue: {sx: 2287, sy: 1501, sw: 74, sh: 140},
-
-  // Decorations (Rows 8 & 9)
-  crate_1: {sx: 26, sy: 1211, sw: 98, sh: 122},
-  crate_2: {sx: 177, sy: 1212, sw: 98, sh: 121},
-  crate_raven: {sx: 476, sy: 1211, sw: 99, sh: 122},
-  barrel_1: {sx: 626, sy: 1211, sw: 97, sh: 122},
-  barrel_large: {sx: 25, sy: 1362, sw: 99, sh: 119},
-  barrel_broken: {sx: 462, sy: 1381, sw: 125, sh: 99},
-  chest_closed: {sx: 772, sy: 1238, sw: 106, sh: 89},
-  chest_open: {sx: 922, sy: 1362, sw: 107, sh: 109},
-  rocks_small: {sx: 1080, sy: 1233, sw: 89, sh: 80},
-  rocks_med: {sx: 1213, sy: 1215, sw: 124, sh: 116},
-  rocks_large: {sx: 1364, sy: 1216, sw: 124, sh: 117},
-  bones: {sx: 1530, sy: 1229, sw: 87, sh: 88},
-  skull_crossbones: {sx: 1529, sy: 1378, sw: 94, sh: 87},
-  floor_cracks: {sx: 1669, sy: 1367, sw: 106, sh: 110},
-  moss_patch: {sx: 1965, sy: 1224, sw: 123, sh: 104},
-  slime_puddle: {sx: 1964, sy: 1369, sw: 123, sh: 107},
-  blood_pool: {sx: 2116, sy: 1373, sw: 118, sh: 93},
-  chains: {sx: 2267, sy: 1354, sw: 116, sh: 127},
-};
-
-function drawSprite(name, dx, dy, dw = TILE_SIZE, dh = TILE_SIZE) {
-  const s = ATLAS[name];
-  if (!s || !atlasLoaded) return false;
-  ctx.drawImage(atlas, s.sx, s.sy, s.sw, s.sh, dx, dy, dw, dh);
-  return true;
+function drawTile(name, dx, dy, dw = TILE_SIZE, dh = TILE_SIZE) {
+  const img = tiles[name];
+  if (img && img.complete) {
+    ctx.drawImage(img, dx, dy, dw, dh);
+    return true;
+  }
+  return false;
 }
 
-function drawSpriteFit(name, cx, cy, maxW = TILE_SIZE, maxH = TILE_SIZE) {
-  const s = ATLAS[name];
-  if (!s || !atlasLoaded) return;
-  const scale = Math.min(maxW / s.sw, maxH / s.sh);
-  const w = s.sw * scale, h = s.sh * scale;
-  ctx.drawImage(atlas, s.sx, s.sy, s.sw, s.sh, cx - w / 2, cy - h / 2, w, h);
+function drawTileFit(name, cx, cy, maxW = TILE_SIZE, maxH = TILE_SIZE) {
+  const img = tiles[name];
+  if (img && img.complete && img.naturalWidth > 0) {
+    const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+    const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+    ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+  }
 }
 
 // ============================================================================
@@ -195,7 +109,7 @@ function say(t) { msgEl.textContent = t; }
 // ============================================================================
 function generateRooms() {
   rooms = [];
-  // 1. Central Great Hall (5x5)
+  // 1. Central Hall (5x5)
   const cw = 5, ch = 5;
   const cx = Math.floor((N - cw) / 2), cy = Math.floor((N - ch) / 2);
   rooms.push({x: cx, y: cy, w: cw, h: ch, isHall: true});
@@ -208,7 +122,7 @@ function generateRooms() {
   let attempts = 0;
   while (rooms.length < targetRooms && attempts < 120) {
     attempts++;
-    const rw = 3 + Math.floor(rng() * 3); // 3, 4, 5
+    const rw = 3 + Math.floor(rng() * 3);
     const rh = 3 + Math.floor(rng() * 3);
     const rx = 2 + Math.floor(rng() * (N - rw - 3));
     const ry = 2 + Math.floor(rng() * (N - rh - 3));
@@ -220,18 +134,9 @@ function generateRooms() {
       }
     }
     if (!overlap) {
-      const isIrregular = rng() < 0.35;
-      rooms.push({x: rx, y: ry, w: rw, h: rh, isHall: false, isIrregular});
+      rooms.push({x: rx, y: ry, w: rw, h: rh, isHall: false});
       for (let y = ry; y < ry + rh; y++) {
         for (let x = rx; x < rx + rw; x++) g[y][x] = 0;
-      }
-      if (isIrregular && rx + rw + 2 < N - 1 && ry + rh + 2 < N - 1) {
-        // Add attached alcove
-        for (let y = ry + 1; y < ry + 3; y++) {
-          for (let x = rx + rw; x < rx + rw + 2; x++) {
-            if (x < N - 1 && y < N - 1) g[y][x] = 0;
-          }
-        }
       }
     }
   }
@@ -251,7 +156,6 @@ function connectRooms() {
       for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) g[y2][x] = 0;
     }
   }
-  // Extra connections to central hall for loop connectivity
   const hall = rooms[0];
   for (let i = 1; i < rooms.length; i++) {
     if (rng() < 0.45) {
@@ -262,7 +166,6 @@ function connectRooms() {
       for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) g[y][x2] = 0;
     }
   }
-  // Outer perimeter must always be walls
   for (let i = 0; i < N; i++) {
     g[0][i] = 1; g[N - 1][i] = 1; g[i][0] = 1; g[i][N - 1] = 1;
   }
@@ -273,10 +176,10 @@ function placeDoors() {
   for (let r of rooms) {
     for (let x = r.x; x < r.x + r.w; x++) {
       if (r.y > 1 && g[r.y - 1][x] === 0 && g[r.y][x] === 0 && !doors.some(d => d.x === x && d.y === r.y)) {
-        doors.push({x, y: r.y, open: rng() < 0.35, type: 'door_wood'});
+        doors.push({x, y: r.y, open: false});
       }
       if (r.y + r.h < N - 1 && g[r.y + r.h][x] === 0 && g[r.y + r.h - 1][x] === 0 && !doors.some(d => d.x === x && d.y === r.y + r.h - 1)) {
-        doors.push({x, y: r.y + r.h - 1, open: rng() < 0.35, type: 'door_wood'});
+        doors.push({x, y: r.y + r.h - 1, open: false});
       }
     }
   }
@@ -285,28 +188,25 @@ function placeDoors() {
 function placeTorches() {
   torches = [];
   let id = 0;
-  // Wall torches on south-facing walls
   for (let y = 1; y < N - 2; y++) {
     for (let x = 1; x < N - 1; x++) {
       if (g[y][x] === 1 && g[y + 1][x] === 0) {
-        if (rng() < 0.14) {
-          torches.push({x, y, type: 'torch', id: id++});
+        if (rng() < 0.15) {
+          torches.push({x, y, id: id++});
         }
       }
     }
   }
-  // Standing braziers in great hall corners
+  // Great hall torches
   const hall = rooms[0];
-  torches.push({x: hall.x + 1, y: hall.y + 1, type: 'brazier', id: id++});
-  torches.push({x: hall.x + hall.w - 2, y: hall.y + 1, type: 'brazier', id: id++});
-  torches.push({x: hall.x + 1, y: hall.y + hall.h - 2, type: 'brazier', id: id++});
-  torches.push({x: hall.x + hall.w - 2, y: hall.y + hall.h - 2, type: 'brazier', id: id++});
+  torches.push({x: hall.x + 1, y: hall.y, id: id++});
+  torches.push({x: hall.x + hall.w - 2, y: hall.y, id: id++});
 }
 
 function placeDecorations() {
   decorations = [];
-  const nonBlocking = ['bones', 'skull_crossbones', 'blood_pool', 'moss_patch', 'floor_cracks', 'slime_puddle'];
-  const blocking = ['crate_1', 'crate_2', 'barrel_1', 'chest_closed'];
+  const nonBlocking = ['bones', 'blood'];
+  const blocking = ['crate', 'barrel'];
   
   for (let y = 1; y < N - 1; y++) {
     for (let x = 1; x < N - 1; x++) {
@@ -328,7 +228,6 @@ function placeDecorations() {
 }
 
 function validateDungeon() {
-  // BFS connectivity test from player to exit and enemy
   const res = bfs(P.cx, P.cy, E.cx, E.cy);
   return res !== null && E.path && E.path.length > 0;
 }
@@ -374,14 +273,13 @@ function pickDark() {
 function init() {
   currentSeed = Math.floor(Math.random() * 900000) + 100000;
   rng = mulberry32(currentSeed);
+  blocks = []; traps = []; items = [];
   let R, lc;
   for (;;) {
     generateDungeon();
-    // Player starts in room 1
     const pRoom = rooms[1] || rooms[0];
     P = {cx: pRoom.x + 1, cy: pRoom.y + 1, fx: pRoom.x + 1, fy: pRoom.y + 1, tx: pRoom.x + 1, ty: pRoom.y + 1, mv: false, dir: 2, keys: 0, torch: false, stun: 0, block: 0, adr: 0, sprintT: 0, sprintCD: 0};
     
-    // Exit in farthest room
     let maxDist = -1, bestRoom = rooms[rooms.length - 1];
     for (let r of rooms) {
       const dist = Math.hypot(r.x - P.cx, r.y - P.cy);
@@ -390,7 +288,6 @@ function init() {
     exitPos = {x: bestRoom.x + Math.floor(bestRoom.w / 2), y: bestRoom.y + Math.floor(bestRoom.h / 2)};
     g[exitPos.y][exitPos.x] = 2;
 
-    // Enemy in distant room
     const eRoom = rooms.length > 3 ? rooms[rooms.length - 2] : bestRoom;
     E = {cx: eRoom.x + 1, cy: eRoom.y + 1, fx: eRoom.x + 1, fy: eRoom.y + 1, tx: eRoom.x + 1, ty: eRoom.y + 1, mv: false, st: 'idle', t: 0, path: []};
 
@@ -400,7 +297,7 @@ function init() {
     if (lc.length >= 10 && validateDungeon()) break;
   }
 
-  over = null; traps = []; blocks = []; items = [];
+  over = null;
   seen = Array.from({length: N}, () => Array(N).fill(false));
   seen[exitPos.y][exitPos.x] = true;
 
@@ -422,26 +319,19 @@ function init() {
     return {x, y};
   };
 
-  // Torch near spawn
   const near = lc.filter(k => R[k] >= 2 && R[k] <= 8 && !used.has(k));
   const tk = (near.length ? near[Math.floor(rng() * near.length)] : lc[0]).split(',').map(Number);
   used.add(tk.join(','));
   items.push({x: tk[0], y: tk[1], type: 'torch'});
 
-  // Keys: 2 in lit, 1 in dark
   [0, 0, 1].forEach(d => items.push({...pick(!!d), type: 'key'}));
   [['stun', 0], ['stun', 1], ['block', 0], ['block', 1], ['map', 0]].forEach(([t, d]) => items.push({...pick(!!d), type: t}));
   say('Grab the torch, find 3 keys, reach the EXIT stairs.');
 }
 
 // ============================================================================
-// WALL AUTOTILING & FLOOR VARIATION
+// PRECISE AUTOTILING LOGIC
 // ============================================================================
-function isW(gx, gy) {
-  if (gx < 0 || gy < 0 || gx >= N || gy >= N) return true;
-  return g[gy][gx] === 1;
-}
-
 function isFloor(x, y) {
   if (x < 0 || y < 0 || x >= N || y >= N) return false;
   return g[y][x] === 0 || g[y][x] === 2;
@@ -453,60 +343,35 @@ function getWallType(x, y) {
   const f_ul = isFloor(x - 1, y - 1), f_ur = isFloor(x + 1, y - 1);
   const f_dl = isFloor(x - 1, y + 1), f_dr = isFloor(x + 1, y + 1);
 
-  // 1. Outer room corners bordering open floors
-  if ((f_dr && !f_u && !f_l) || (f_d && f_r && !f_u && !f_l)) return 'wall_corner_tl';
-  if ((f_dl && !f_u && !f_r) || (f_d && f_l && !f_u && !f_r)) return 'wall_corner_tr';
-  if ((f_ur && !f_d && !f_l) || (f_u && f_r && !f_d && !f_l)) return 'wall_corner_bl';
-  if ((f_ul && !f_d && !f_r) || (f_u && f_l && !f_d && !f_r)) return 'wall_corner_br';
+  // 1. Straight walls bordering floors (MUST BE CHECKED FIRST!)
+  if (f_d && !f_u && !f_l && !f_r) return 'wall_top';
+  if (f_u && !f_d && !f_l && !f_r) return 'wall_bottom';
+  if (f_r && !f_l && !f_u && !f_d) return 'wall_left';
+  if (f_l && !f_r && !f_u && !f_d) return 'wall_right';
 
-  // 2. Straight wall edges bordering rooms/corridors
-  if (f_d && !f_u) return 'wall_top_horiz';
-  if (f_u && !f_d) return 'wall_bot_horiz';
-  if (f_r && !f_l) return 'wall_left_vert';
-  if (f_l && !f_r) return 'wall_right_vert';
+  // 2. Outer corners (where two floor edges meet, e.g. at corridor turns)
+  if (f_d && f_r && !f_u && !f_l) return 'wall_corner_tl';
+  if (f_d && f_l && !f_u && !f_r) return 'wall_corner_tr';
+  if (f_u && f_r && !f_d && !f_l) return 'wall_corner_bl';
+  if (f_u && f_l && !f_d && !f_r) return 'wall_corner_br';
 
-  // 3. Inner corners / T-junctions
-  if (!isW(x, y + 1) && isW(x, y - 1)) return 'wall_top_horiz';
-  if (!isW(x + 1, y) && isW(x - 1, y)) return 'wall_left_vert';
+  // 3. Room corners (both orthogonal neighbors are walls, but diagonal is floor)
+  if (!f_u && !f_d && !f_l && !f_r) {
+    if (f_dr && !f_dl && !f_ur && !f_ul) return 'wall_corner_tl';
+    if (f_dl && !f_dr && !f_ur && !f_ul) return 'wall_corner_tr';
+    if (f_ur && !f_dr && !f_dl && !f_ul) return 'wall_corner_bl';
+    if (f_ul && !f_dr && !f_dl && !f_ur) return 'wall_corner_br';
+  }
 
-  // 4. Solid brick fill with mossy and cracked accents
-  const h = (x * 19 + y * 29 + currentSeed) % 100;
-  if (h < 10) return 'wall_moss_horiz';
-  if (h < 20) return 'wall_crack_horiz';
+  // 4. Solid wall interior
   return 'wall_solid';
 }
 
 function getFloorVariant(x, y) {
-  // Check if cell is in a 2x2 grand stone slab
-  for (let r of rooms) {
-    if (r.w >= 4 && r.h >= 4) {
-      const cx = r.x + Math.floor((r.w - 2) / 2);
-      const cy = r.y + Math.floor((r.h - 2) / 2);
-      if (x === cx && y === cy) return 'floor_slab_tl';
-      if (x === cx + 1 && y === cy) return 'floor_slab_tr';
-      if (x === cx && y === cy + 1) return 'floor_slab_bl';
-      if (x === cx + 1 && y === cy + 1) return 'floor_slab_br';
-    }
-  }
-
-  // Weighted random selection based on deterministic coordinate hash
   const hash = (x * 73 + y * 97 + currentSeed * 13) % 100;
-  if (hash < 70) {
-    // 70% normal stone
-    return 'floor_norm_' + ((x + y * 2) % 4);
-  } else if (hash < 85) {
-    // 15% cracked stone
-    return hash % 2 === 0 ? 'floor_crack_0' : 'floor_crack_1';
-  } else if (hash < 92) {
-    // 7% heavily cracked
-    return 'floor_heavy_crack';
-  } else if (hash < 97) {
-    // 5% mossy stone
-    return hash % 2 === 0 ? 'floor_moss_0' : 'floor_moss_1';
-  } else {
-    // 3% damaged / rubble
-    return 'floor_rubble';
-  }
+  if (hash > 88) return 'floor_cracked';
+  if (hash > 78) return 'floor_mossy';
+  return 'floor_normal';
 }
 
 // ============================================================================
@@ -585,7 +450,6 @@ function pickup() {
 
 function arriveP() {
   if (mode === 'abs') pickup();
-  // Open any closed wooden door on arrival
   const door = doors.find(d => d.x === P.cx && d.y === P.cy && !d.open);
   if (door) { door.open = true; }
   if (g[P.cy][P.cx] === 2) over = 'win';
@@ -655,7 +519,6 @@ function update(dt) {
   blocks.forEach(b => b.t -= dt);
   blocks = blocks.filter(b => b.t > 0);
 
-  // Player movement
   if (!P.mv) {
     let d = -1;
     if (mode === 'abs') { if (held.length) { d = AB[held[held.length - 1]]; P.dir = d; } }
@@ -670,7 +533,7 @@ function update(dt) {
     if (step(P, sp, dt)) arriveP();
   }
 
-  // Fog of war memory update
+  // Fog of war memory
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
       if (lit(x, y) && Math.hypot(x - P.fx, y - P.fy) <= (dark(x, y) ? 2.6 : 6)) {
@@ -719,15 +582,14 @@ function updE(dt) {
 }
 
 // ============================================================================
-// 2D RENDERING PIPELINE (14-STEP ARCHITECTURE)
+// 2D RENDERING PIPELINE (USING SEPARATE CUT TILE FILES)
 // ============================================================================
 function drawFloor() {
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
-      if (!seen[y][x] || (dark(x, y) && !P.torch)) continue;
       if (g[y][x] === 0 || g[y][x] === 2) {
         const sprite = getFloorVariant(x, y);
-        drawSprite(sprite, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        drawTile(sprite, x * TILE_SIZE, y * TILE_SIZE);
       }
     }
   }
@@ -736,24 +598,9 @@ function drawFloor() {
 function drawWalls() {
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
-      if (!seen[y][x] || (dark(x, y) && !P.torch)) continue;
       if (g[y][x] === 1) {
         const sprite = getWallType(x, y);
-        drawSprite(sprite, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-    }
-  }
-}
-
-function drawWallDepth() {
-  // Cast subtle depth shading beneath south-facing walls onto the floor directly below
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
-  for (let y = 0; y < N - 1; y++) {
-    for (let x = 0; x < N; x++) {
-      if (g[y][x] === 1 && (g[y + 1][x] === 0 || g[y + 1][x] === 2)) {
-        if (seen[y + 1][x] && (!dark(x, y + 1) || P.torch)) {
-          ctx.fillRect(x * TILE_SIZE, (y + 1) * TILE_SIZE, TILE_SIZE, 5);
-        }
+        drawTile(sprite, x * TILE_SIZE, y * TILE_SIZE);
       }
     }
   }
@@ -761,44 +608,30 @@ function drawWallDepth() {
 
 function drawDoors() {
   for (let d of doors) {
-    if (!seen[d.y][d.x] || (dark(d.x, d.y) && !P.torch)) continue;
-    const sprite = d.open ? 'door_wood_open' : 'door_wood_closed';
-    drawSprite(sprite, d.x * TILE_SIZE, d.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    const sprite = d.open ? 'door_open' : 'door_closed';
+    drawTile(sprite, d.x * TILE_SIZE, d.y * TILE_SIZE);
   }
 }
 
 function drawDecorations() {
   for (let d of decorations) {
-    if (!seen[d.y][d.x] || (dark(d.x, d.y) && !P.torch)) continue;
-    drawSpriteFit(d.sprite, d.x * TILE_SIZE + TILE_SIZE / 2, d.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.9, TILE_SIZE * 0.9);
+    drawTileFit(d.sprite, d.x * TILE_SIZE + TILE_SIZE / 2, d.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.9, TILE_SIZE * 0.9);
   }
-  // Barricade blocks
   blocks.forEach(b => {
-    if (seen[b.y][b.x]) {
-      drawSpriteFit('crate_1', b.x * TILE_SIZE + TILE_SIZE / 2, b.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.85, TILE_SIZE * 0.85);
-    }
+    drawTileFit('crate', b.x * TILE_SIZE + TILE_SIZE / 2, b.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.85, TILE_SIZE * 0.85);
   });
 }
 
 function drawTorches(tm) {
   for (let t of torches) {
-    if (!seen[t.y][t.x] || (dark(t.x, t.y) && !P.torch)) continue;
-    if (t.type === 'torch') {
-      const frame = 1 + Math.floor((tm / 160 + t.id * 1.3) % 3);
-      drawSpriteFit('torch_lit_' + frame, t.x * TILE_SIZE + TILE_SIZE / 2, t.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.8, TILE_SIZE * 0.95);
-    } else {
-      const frame = 1 + Math.floor((tm / 180 + t.id * 1.5) % 2);
-      drawSpriteFit('brazier_' + frame, t.x * TILE_SIZE + TILE_SIZE / 2, t.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.85, TILE_SIZE * 0.95);
-    }
+    drawTileFit('torch', t.x * TILE_SIZE + TILE_SIZE / 2, t.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.75, TILE_SIZE * 0.95);
   }
 }
 
 function drawExit(tm) {
-  if (!seen[exitPos.y][exitPos.x]) return;
   const ex = exitPos.x * TILE_SIZE, ey = exitPos.y * TILE_SIZE;
-  drawSprite('stairs_down', ex, ey, TILE_SIZE, TILE_SIZE);
+  drawTile('stairs', ex, ey, TILE_SIZE, TILE_SIZE);
 
-  // Pulsing exit beacon
   const isOpen = P.keys >= 3;
   const pulse = 0.25 + 0.15 * Math.sin(tm / 200);
   const cx = ex + TILE_SIZE / 2, cy = ey + TILE_SIZE / 2;
@@ -821,16 +654,17 @@ function drawExit(tm) {
 }
 
 function drawLighting(tm) {
+  // Ambient dungeon darkness (0.55 so the procedural dungeon generation is clearly visible!)
   lightCtx.setTransform(1, 0, 0, 1, 0, 0);
-  lightCtx.fillStyle = 'rgba(5, 7, 10, 0.94)';
+  lightCtx.fillStyle = 'rgba(5, 7, 10, 0.58)';
   lightCtx.fillRect(0, 0, W, W);
 
   lightCtx.globalCompositeOperation = 'destination-out';
 
-  // 1. Torches dynamic point lights
+  // 1. Torches point lights
   for (let t of torches) {
     const flicker = Math.sin(tm * 0.006 + t.id * 2.3) * 0.08 + Math.cos(tm * 0.013 + t.id * 3.7) * 0.05;
-    const radius = TILE_SIZE * (3.6 + flicker * 0.9);
+    const radius = TILE_SIZE * (3.8 + flicker * 0.9);
     const tx = t.x * TILE_SIZE + TILE_SIZE / 2, ty = t.y * TILE_SIZE + TILE_SIZE / 2;
     const grad = lightCtx.createRadialGradient(tx, ty, 6, tx, ty, radius);
     grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
@@ -841,7 +675,6 @@ function drawLighting(tm) {
     lightCtx.arc(tx, ty, radius, 0, Math.PI * 2);
     lightCtx.fill();
 
-    // Reveal visited cells within torch radius
     const cellR = Math.ceil(radius / TILE_SIZE);
     for (let dy = -cellR; dy <= cellR; dy++) {
       for (let dx = -cellR; dx <= cellR; dx++) {
@@ -853,8 +686,8 @@ function drawLighting(tm) {
     }
   }
 
-  // 2. Player vision light
-  const pRadius = P.torch ? TILE_SIZE * 5.4 : (dark(P.cx, P.cy) ? TILE_SIZE * 1.6 : TILE_SIZE * 3.4);
+  // 2. Player light
+  const pRadius = P.torch ? TILE_SIZE * 5.4 : (dark(P.cx, P.cy) ? TILE_SIZE * 1.6 : TILE_SIZE * 3.5);
   const px = P.fx * TILE_SIZE + TILE_SIZE / 2, py = P.fy * TILE_SIZE + TILE_SIZE / 2;
   const pGrad = lightCtx.createRadialGradient(px, py, 6, px, py, pRadius);
   pGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
@@ -865,28 +698,17 @@ function drawLighting(tm) {
   lightCtx.arc(px, py, pRadius, 0, Math.PI * 2);
   lightCtx.fill();
 
-  // 3. Fog of war: previously seen cells remain partially visible (fog memory)
-  lightCtx.fillStyle = 'rgba(0, 0, 0, 0.48)';
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
-      if (seen[y][x] && (!dark(x, y) || P.torch)) {
-        lightCtx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-    }
-  }
-
   // Draw lighting/fog canvas onto scene
   ctx.drawImage(lightCanvas, 0, 0);
 
-  // 4. Additive warm torch light tint
+  // 3. Additive warm torch light tint
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let t of torches) {
-    if (!seen[t.y][t.x]) continue;
     const tx = t.x * TILE_SIZE + TILE_SIZE / 2, ty = t.y * TILE_SIZE + TILE_SIZE / 2;
     const r = TILE_SIZE * 3.2;
     const tint = ctx.createRadialGradient(tx, ty, 4, tx, ty, r);
-    tint.addColorStop(0, 'rgba(255, 175, 55, 0.26)');
+    tint.addColorStop(0, 'rgba(255, 175, 55, 0.28)');
     tint.addColorStop(0.5, 'rgba(220, 110, 25, 0.12)');
     tint.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = tint;
@@ -899,28 +721,25 @@ function drawLighting(tm) {
 
 function drawItems(tm) {
   const itemIcons = {
-    key: 'key_gold',
-    torch: 'torch_lit_2',
+    key: 'key',
+    torch: 'torch',
     stun: 'crystal_cyan',
-    block: 'crate_1',
+    block: 'crate',
     map: 'crystal_purple'
   };
   items.forEach(it => {
-    if (!lit(it.x, it.y) || Math.hypot(it.x - P.fx, it.y - P.fy) > 3.6) return;
     const cx = it.x * TILE_SIZE + TILE_SIZE / 2, cy = it.y * TILE_SIZE + TILE_SIZE / 2;
     const bob = Math.sin(tm / 180 + it.x) * 2;
-    // Item aura
     ctx.fillStyle = 'rgba(255, 220, 80, ' + (0.2 + 0.1 * Math.sin(tm / 180)) + ')';
     ctx.beginPath();
     ctx.arc(cx, cy + bob, 14, 0, Math.PI * 2);
     ctx.fill();
-    drawSpriteFit(itemIcons[it.type] || 'crystal_cyan', cx, cy + bob, TILE_SIZE * 0.8, TILE_SIZE * 0.8);
+    drawTileFit(itemIcons[it.type] || 'crystal_cyan', cx, cy + bob, TILE_SIZE * 0.8, TILE_SIZE * 0.8);
   });
 }
 
 function drawPlayer() {
   const pcx = P.fx * TILE_SIZE + TILE_SIZE / 2, pcy = P.fy * TILE_SIZE + TILE_SIZE / 2;
-  // Shadow
   ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
   ctx.beginPath();
   ctx.ellipse(pcx, pcy + 10, 13 * 1.2, 13 * 0.45, 0, 0, Math.PI * 2);
@@ -928,12 +747,10 @@ function drawPlayer() {
 
   ctx.save();
   ctx.translate(pcx, pcy);
-  // Head
   ctx.fillStyle = '#e8d9c1';
   ctx.beginPath();
   ctx.arc(0, -4, 9, 0, Math.PI * 2);
   ctx.fill();
-  // Body (color shifts if adrenaline active)
   ctx.fillStyle = P.adr > 0 ? '#e8742f' : '#b7463d';
   ctx.fillRect(-9, 2, 18, 10);
   ctx.fillStyle = '#f6eee0';
@@ -942,7 +759,6 @@ function drawPlayer() {
   ctx.fillStyle = '#35251e';
   ctx.fillRect(-5, -9, 10, 4);
 
-  // Direction pointer cone
   ctx.rotate(P.dir * Math.PI / 2);
   ctx.fillStyle = '#7fe3ff';
   ctx.beginPath();
@@ -955,12 +771,10 @@ function drawPlayer() {
 }
 
 function drawEnemy() {
-  if (!lit(Math.round(E.fx), Math.round(E.fy))) return;
   const ex = E.fx * TILE_SIZE + TILE_SIZE / 2, ey = E.fy * TILE_SIZE + TILE_SIZE / 2;
   const rage = E.st === 'chase' || E.st === 'windup';
   const sh = E.st === 'windup' ? (Math.random() - 0.5) * 3 : 0;
 
-  // Shadow
   ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
   ctx.beginPath();
   ctx.ellipse(ex, ey + 10, 16 * 1.2, 16 * 0.45, 0, 0, Math.PI * 2);
@@ -991,27 +805,23 @@ function drawEnemy() {
 }
 
 function drawEffects(tm) {
-  // Stun zap screen flash
   if (P.zapT > 0) {
     ctx.fillStyle = 'rgba(80, 225, 255, ' + P.zapT + ')';
     ctx.fillRect(0, 0, W, W);
   }
 
-  // Traps
   traps.forEach(t => {
-    if (lit(t.x, t.y)) {
-      ctx.strokeStyle = '#4de0ff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(t.x * TILE_SIZE + TILE_SIZE / 2, t.y * TILE_SIZE + TILE_SIZE / 2, 9, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    ctx.strokeStyle = '#4de0ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(t.x * TILE_SIZE + TILE_SIZE / 2, t.y * TILE_SIZE + TILE_SIZE / 2, 9, 0, Math.PI * 2);
+    ctx.stroke();
   });
 
-  // BFS DEBUG PATH VISUALIZATION
+  // BFS DEBUG PATH
   if (bfsDebug && E.path && E.path.length > 0) {
     ctx.save();
-    ctx.strokeStyle = 'rgba(77, 224, 255, 0.75)';
+    ctx.strokeStyle = 'rgba(77, 224, 255, 0.85)';
     ctx.lineWidth = 2.5;
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
@@ -1023,11 +833,10 @@ function drawEffects(tm) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Glowing nodes along the BFS path
     for (let i = 0; i < E.path.length; i++) {
       const p = E.path[i];
       const pulse = 3 + Math.sin(tm * 0.008 + i * 0.4) * 1.5;
-      ctx.fillStyle = 'rgba(77, 224, 255, 0.9)';
+      ctx.fillStyle = 'rgba(77, 224, 255, 0.95)';
       ctx.beginPath();
       ctx.arc(p[0] * TILE_SIZE + TILE_SIZE / 2, p[1] * TILE_SIZE + TILE_SIZE / 2, pulse, 0, Math.PI * 2);
       ctx.fill();
@@ -1041,47 +850,20 @@ function draw2d() {
   ctx.imageSmoothingEnabled = false;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-  // 1. Base dark background
   ctx.fillStyle = '#06080a';
   ctx.fillRect(0, 0, W, W);
 
-  // 2. Floor tiles
   drawFloor();
-
-  // 3. Wall tiles
   drawWalls();
-
-  // 4. Wall depth/caps
-  drawWallDepth();
-
-  // 5. Doors
   drawDoors();
-
-  // 6. Static decorations & blocks
   drawDecorations();
-
-  // 7. Torches & Braziers
   drawTorches(tm);
-
-  // 8. Exit
   drawExit(tm);
-
-  // 9. Dynamic Torch Lighting & Fog Mask
   drawLighting(tm);
-
-  // 10. Items
   drawItems(tm);
-
-  // 11. Player
   drawPlayer();
-
-  // 12. Enemy
   drawEnemy();
-
-  // 13. Particles & Effects (Stun flash, BFS path debug)
   drawEffects(tm);
-
-  // 14. HUD & overlay
   tail();
 }
 
@@ -1194,6 +976,46 @@ function draw3d(){
   if(!P.mv&&!over&&items.some(i=>i.x===P.cx&&i.y===P.cy)){ctx.fillStyle='#fff';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('Press E to pick up',W/2,W-30)}
   tail();
 }
+
+function draw() { mode === 'rel' ? draw3d() : draw2d(); }
+
+const map = {
+  e: 'use', arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down',
+  arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right',
+  ' ': 'snap', shift: 'sprint', '1': 'stun', '2': 'block',
+  r: 'restart', c: 'mode', b: 'debug'
+};
+
+addEventListener('keydown', e => {
+  const k = map[e.key.toLowerCase()];
+  if (!k) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  press(k);
+});
+addEventListener('keyup', e => {
+  const k = map[e.key.toLowerCase()];
+  if (k) release(k);
+});
+document.querySelectorAll('#pad button').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); press(k); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => release(k)));
+});
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  DT = dt;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+init();
+requestAnimationFrame(loop);
+</script></body></html>
 
 function draw() { mode === 'rel' ? draw3d() : draw2d(); }
 
