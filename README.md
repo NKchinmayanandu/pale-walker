@@ -1,6 +1,4 @@
-Searched for files: *README*
-Created README.md
-Ran command: `cat << 'EOF' > README.md
+
 # 🏰 Backrooms Stalker 2D
 
 > A survival-horror retro dungeon crawler featuring dual-perspective gameplay (2D Top-Down and 3D Pseudo-Raycaster), procedural room-first generation, dynamic torch lighting, and an relentless hunting entity powered by BFS pathfinding.
