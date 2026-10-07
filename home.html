@@ -135,6 +135,33 @@ canvas#c{max-width:calc(100vw - 16px);max-height:calc(100vh - 120px);width:auto;
   padding: 5px 9px;
   line-height: 1.35;
 }
+.sip-mute-btn {
+  width: 100%;
+  padding: 9px 12px;
+  background: #172a30;
+  border: 1.5px solid #52d3eb;
+  border-radius: 8px;
+  color: #7fe3ff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(82, 211, 235, 0.25);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.sip-mute-btn:hover {
+  background: #203c45;
+  border-color: #aff4ff;
+  color: #fff;
+  transform: translateY(-1px);
+}
+.sip-mute-btn.is-muted {
+  background: #2b1818;
+  border-color: #ff6a5a;
+  color: #ff8a6a;
+  box-shadow: 0 0 12px rgba(255, 106, 90, 0.25);
+}
 .sip-section {
   display: flex;
   flex-direction: column;
@@ -625,7 +652,10 @@ kbd{
 </style></head><body>
 <div id="viewport">
 <!-- DESKTOP LEFT BLACK-BAR INFO PANEL (PC / WIDESCREEN) -->
-<div id="side-info-panel"></div>
+<div id="side-info-panel">
+  <button id="side-mute-btn" class="sip-mute-btn" type="button">🔊 AUDIO: ON [M]</button>
+  <div id="sip-body" style="display:flex;flex-direction:column;gap:10px;"></div>
+</div>
 <div id="hud-wrap"><div id="hud"></div><div id="msg"></div></div>
 <canvas id="c" width="992" height="992"></canvas>
 <div id="bottom-wrap">
@@ -639,6 +669,7 @@ kbd{
 <button id="help-btn" class="bar-btn">? Help (H)</button>
 <button id="fs-btn" class="bar-btn">⛶ Fullscreen</button>
 <button id="toggle-pad-btn" class="bar-btn">⌨ Controls: On</button>
+<button id="bar-mute-btn" class="bar-btn">🔊 Sound: On (M)</button>
 </div>
 </div>
 
@@ -662,6 +693,7 @@ kbd{
           <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>▲</kbd><kbd>◀</kbd><kbd>▼</kbd><kbd>▶</kbd></td><td>Move (2D: steer · 3D: walk & turn)</td></tr>
           <tr><td><kbd>C</kbd></td><td>Switch View: <strong>2D Top-Down</strong> ↔ <strong>3D Raycaster</strong></td></tr>
           <tr><td><kbd>H</kbd></td><td>Toggle <strong>Help / Pause</strong> menu</td></tr>
+          <tr><td><kbd>M</kbd></td><td>Toggle <strong>Mute / Unmute Audio</strong></td></tr>
           <tr><td><kbd>Shift</kbd></td><td><strong>Sprint</strong> (speed boost + dynamic FOV warp)</td></tr>
           <tr><td><kbd>Space</kbd></td><td><strong>180° Snap Turn</strong></td></tr>
           <tr><td><kbd>1</kbd></td><td><strong>Stun Shot</strong> (face enemy within 10 tiles)</td></tr>
@@ -993,6 +1025,260 @@ function say(t){msgEl.textContent=t}
 let centerMsg='',centerMsgT=0,centerMsgTone='normal';
 function centerSay(t,tone='normal'){centerMsg=t;centerMsgT=0.8;centerMsgTone=tone}
 const sideInfoPanelEl=document.getElementById('side-info-panel');
+const sipBodyEl=document.getElementById('sip-body');
+
+// ============================================================================
+// DYNAMIC PROCEDURAL AUDIO ENGINE (PALE WALKER)
+// ============================================================================
+const snd = {
+  isMuted: false,
+  initialized: false,
+  tracks: {
+    menu: new Audio('Assets/audio/menu.mp3'),
+    stalk: new Audio('Assets/audio/stalk.mp3'),
+    rage: new Audio('Assets/audio/rage.mp3'),
+    rageNear: new Audio('Assets/audio/rage_near.mp3'),
+    silentCaught: new Audio('Assets/audio/silentcaught.mp3'),
+    chaseCaught: new Audio('Assets/audio/chase_caught_cut.mp3'),
+    victory: new Audio('Assets/audio/victory.mp3')
+  },
+  currentVol: {
+    menu: 0,
+    stalk: 0,
+    rage: 0,
+    rageNear: 0
+  },
+  init() {
+    if (this.initialized) return;
+    this.initialized = true;
+    this.tracks.menu.loop = true;
+    this.tracks.stalk.loop = true;
+    this.tracks.rage.loop = true;
+    this.tracks.rageNear.loop = true;
+    this.tracks.silentCaught.loop = false;
+    this.tracks.chaseCaught.loop = false;
+    this.tracks.victory.loop = false;
+
+    Object.values(this.tracks).forEach(a => {
+      a.preload = 'auto';
+    });
+
+    if (!gameStarted && !this.isMuted) {
+      this.playTrack('menu', 0.18);
+    }
+  },
+  safePlay(name) {
+    const t = this.tracks[name];
+    if (!t) return;
+    if (t.paused) {
+      const p = t.play();
+      if (p && p.catch) p.catch(() => {});
+    }
+  },
+  safePause(name) {
+    const t = this.tracks[name];
+    if (!t) return;
+    t.pause();
+  },
+  playTrack(name, vol) {
+    const t = this.tracks[name];
+    if (!t) return;
+    t.currentTime = 0;
+    t.volume = this.isMuted ? 0 : vol;
+    this.currentVol[name] = vol;
+    this.safePlay(name);
+  },
+  setTrackVol(name, targetVol, instant = false) {
+    const t = this.tracks[name];
+    if (!t) return;
+    if (this.isMuted) {
+      t.volume = 0;
+      return;
+    }
+    targetVol = Math.max(0, Math.min(1, targetVol));
+    if (instant) {
+      this.currentVol[name] = targetVol;
+      t.volume = targetVol;
+      if (targetVol > 0 && t.paused) this.safePlay(name);
+      else if (targetVol === 0 && !t.paused) this.safePause(name);
+      return;
+    }
+    const cur = this.currentVol[name] || 0;
+    const next = cur + (targetVol - cur) * 0.15;
+    this.currentVol[name] = next;
+    t.volume = Math.max(0, Math.min(1, next));
+
+    if (targetVol > 0 && t.paused) {
+      this.safePlay(name);
+    } else if (targetVol === 0 && next < 0.02 && !t.paused) {
+      this.currentVol[name] = 0;
+      t.volume = 0;
+      this.safePause(name);
+    }
+  },
+  stopAllContinuous() {
+    ['stalk', 'rage', 'rageNear', 'menu'].forEach(k => {
+      this.safePause(k);
+      this.currentVol[k] = 0;
+      if (this.tracks[k]) this.tracks[k].volume = 0;
+    });
+  },
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    Object.values(this.tracks).forEach(t => {
+      t.muted = this.isMuted;
+    });
+    if (!this.isMuted) {
+      if (!gameStarted) {
+        this.playTrack('menu', 0.18);
+      } else if (!over) {
+        this.updateGameplayAudio(0.016);
+      }
+    }
+  },
+  onGameStart() {
+    this.init();
+    this.safePause('menu');
+    this.tracks.menu.currentTime = 0;
+    this.currentVol.menu = 0;
+    if (!this.isMuted) {
+      this.tracks.stalk.currentTime = 0;
+      this.setTrackVol('stalk', 0.18, true);
+      this.safePlay('stalk');
+    }
+  },
+  onGameReset() {
+    this.stopAllContinuous();
+    this.safePause('chaseCaught');
+    this.safePause('silentCaught');
+    this.safePause('victory');
+    if (gameStarted) {
+      if (!this.isMuted) {
+        this.tracks.stalk.currentTime = 0;
+        this.setTrackVol('stalk', 0.18, true);
+        this.safePlay('stalk');
+      }
+    } else {
+      if (!this.isMuted) {
+        this.playTrack('menu', 0.18);
+      }
+    }
+  },
+  playWindup() {
+    this.safePause('stalk');
+    this.safePause('rage');
+    this.safePause('rageNear');
+    this.currentVol.stalk = 0;
+    this.currentVol.rage = 0;
+    this.currentVol.rageNear = 0;
+    const cc = this.tracks.chaseCaught;
+    cc.currentTime = 0;
+    cc.volume = this.isMuted ? 0 : 1.0;
+    this.safePlay('chaseCaught');
+  },
+  onChaseStart() {
+    this.safePause('chaseCaught');
+    if (!this.isMuted) {
+      this.safePlay('rage');
+      this.safePlay('rageNear');
+    }
+  },
+  playDead(wasChase) {
+    this.stopAllContinuous();
+    this.safePause('chaseCaught');
+    this.safePause('silentCaught');
+    if (wasChase) {
+      const cc = this.tracks.chaseCaught;
+      cc.currentTime = 0;
+      cc.volume = this.isMuted ? 0 : 1.0;
+      this.safePlay('chaseCaught');
+    } else {
+      const sc = this.tracks.silentCaught;
+      sc.currentTime = 0;
+      sc.volume = this.isMuted ? 0 : 1.0;
+      this.safePlay('silentCaught');
+    }
+  },
+  playWin() {
+    this.stopAllContinuous();
+    this.safePause('chaseCaught');
+    this.safePause('silentCaught');
+    const v = this.tracks.victory;
+    v.currentTime = 0;
+    v.volume = this.isMuted ? 0 : 1.0;
+    this.safePlay('victory');
+  },
+  updateGameplayAudio(dt) {
+    if (this.isMuted || !gameStarted || over) return;
+
+    const hasWindup = enemies.some(e => e.st === 'windup');
+    const chasingEnemies = enemies.filter(e => e.st === 'chase');
+    const stalkingEnemies = enemies.filter(e => e.st === 'stalk');
+
+    if (hasWindup) {
+      this.setTrackVol('stalk', 0);
+      this.setTrackVol('rage', 0);
+      this.setTrackVol('rageNear', 0);
+      return;
+    }
+
+    if (chasingEnemies.length > 0) {
+      this.setTrackVol('stalk', 0);
+      const chaseDist = Math.min(...chasingEnemies.map(getEnemyPathDist));
+      if (chaseDist > 10) {
+        const rageVol = Math.max(0.18, Math.min(1.0, 1.0 - (chaseDist - 10) * 0.04));
+        this.setTrackVol('rage', rageVol);
+        this.setTrackVol('rageNear', 0);
+      } else {
+        const rageNearVol = Math.max(0.35, Math.min(1.0, 1.0 - (chaseDist / 10) * 0.65));
+        this.setTrackVol('rageNear', rageNearVol);
+        this.setTrackVol('rage', 0);
+      }
+    } else {
+      this.setTrackVol('rage', 0);
+      this.setTrackVol('rageNear', 0);
+
+      let targetStalkVol = 0.18;
+      if (stalkingEnemies.length > 0) {
+        const stalkDist = Math.min(...stalkingEnemies.map(getEnemyPathDist));
+        if (stalkDist <= 5) {
+          targetStalkVol = 1.0;
+        } else if (stalkDist <= 10) {
+          targetStalkVol = 0.85;
+        } else if (stalkDist <= 15) {
+          targetStalkVol = 0.70;
+        } else {
+          targetStalkVol = 0.30;
+        }
+      }
+      this.setTrackVol('stalk', targetStalkVol);
+    }
+  }
+};
+
+function toggleMute() {
+  snd.init();
+  snd.toggleMute();
+  updateMuteButtons();
+}
+
+function updateMuteButtons() {
+  const sideMuteBtn = document.getElementById('side-mute-btn');
+  if (sideMuteBtn) {
+    sideMuteBtn.classList.toggle('is-muted', snd.isMuted);
+    sideMuteBtn.innerHTML = snd.isMuted ? '🔇 MUTED [M]' : '🔊 AUDIO: ON [M]';
+  }
+  const barMuteBtn = document.getElementById('bar-mute-btn');
+  if (barMuteBtn) {
+    barMuteBtn.textContent = snd.isMuted ? '🔇 Sound: Off (M)' : '🔊 Sound: On (M)';
+  }
+}
+
+function unlockAudio() {
+  snd.init();
+  ['click', 'keydown', 'touchstart'].forEach(ev => window.removeEventListener(ev, unlockAudio));
+}
+['click', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, unlockAudio, { passive: true }));
 
 // ============================================================================
 // PROCEDURAL DUNGEON GENERATOR (Rooms + Corridor Carving, 31×31)
@@ -1246,6 +1532,7 @@ function init(){
     if(lc.length>=10&&allReach)break;
   }
   over=null;
+  if(gameStarted)snd.onGameReset();
   let bestDir=P.dir,maxOpenDist=-1;
   for(let d=0;d<4;d++){
     const fx=P.cx+DX[d],fy=P.cy+DY[d];
@@ -1320,6 +1607,31 @@ function bfs(sx,sy,tx,ty,entity=E){
   return path[0]?{x:path[0][0],y:path[0][1]}:null;
 }
 
+function calcPathDist(sx,sy,tx,ty){
+  sx=Math.round(sx);sy=Math.round(sy);
+  tx=Math.round(tx);ty=Math.round(ty);
+  if(sx===tx&&sy===ty)return 0;
+  const prev={},q=[[sx,sy]];prev[sx+','+sy]=0;
+  while(q.length){
+    const [x,y]=q.shift();
+    const curDist=prev[x+','+y];
+    if(x===tx&&y===ty)return curDist;
+    for(let d=0;d<4;d++){
+      const nx=x+DX[d],ny=y+DY[d],k=nx+','+ny;
+      if(k in prev||solid(nx,ny))continue;
+      prev[k]=curDist+1;
+      q.push([nx,ny]);
+    }
+  }
+  return 999;
+}
+
+function getEnemyPathDist(e){
+  if(!e)return 999;
+  if(e.path&&e.path.length>0)return e.path.length;
+  return calcPathDist(e.fx,e.fy,P.fx,P.fy);
+}
+
 function step(e,sp,dt){
   const dx=e.tx-e.fx,dy=e.ty-e.fy,dist=Math.hypot(dx,dy),d=sp*dt;
   if(d>=dist){e.fx=e.tx;e.fy=e.ty;e.cx=e.tx;e.cy=e.ty;e.mv=false;return true}
@@ -1387,7 +1699,10 @@ function pickup(){
 }
 function arriveP(){
   if(mode==='abs')pickup();
-  if(g[P.cy][P.cx]===2)over='win';
+  if(!over&&g[P.cy][P.cx]===2){
+    over='win';
+    snd.playWin();
+  }
 }
 let mode='rel',held=[];
 const AB={up:0,right:1,down:2,left:3};
@@ -1462,6 +1777,7 @@ function toggleFullscreen(){
 function press(k){
   if(k==='help'){toggleHelp();return}
   if(k==='fullscreen'){toggleFullscreen();return}
+  if(k==='mute'){toggleMute();return}
   if(k==='restart'){if(helpOpen)toggleHelp();init();return}
   if(isPaused||!gameStarted)return;
   if(k==='mode'){setMode(mode==='abs'?'rel':'abs');return}
@@ -1517,14 +1833,19 @@ function update(dt){
     }
   }
   updE(dt);
-  if(enemies.some(e=>(e.st==='stalk'||e.st==='chase')&&Math.hypot(e.fx-P.fx,e.fy-P.fy)<0.6))over='dead';
+  if(!over&&enemies.some(e=>(e.st==='stalk'||e.st==='chase'||e.st==='windup')&&Math.hypot(e.fx-P.fx,e.fy-P.fy)<0.6)){
+    const wasChase=enemies.some(e=>e.st==='chase'||e.st==='windup');
+    over='dead';
+    snd.playDead(wasChase);
+  }
+  if(!over)snd.updateGameplayAudio(dt);
 }
 function updE(dt){
   enemies.forEach(e=>{
     if(e.st==='idle')return;
-    if(e.st==='windup'){e.t-=dt;if(e.t<=0){e.st='chase';say('IT IS HUNTING YOU!')}return}
+    if(e.st==='windup'){e.t-=dt;if(e.t<=0){e.st='chase';say('IT IS HUNTING YOU!');snd.onChaseStart()}return}
     if(e.st==='stun'){e.t-=dt;if(e.t<=0){e.st='stalk';say('It recovers and stalks again...')}return}
-    if(e.st==='stalk'&&sees(e)){e.st='windup';e.t=5;P.adr=5;say('IT SEES YOU — RUN! (adrenaline)');return}
+    if(e.st==='stalk'&&sees(e)){e.st='windup';e.t=5;P.adr=5;say('IT SEES YOU — RUN! (adrenaline)');snd.playWindup();return}
     if(!e.mv){
       const n=bfs(e.cx,e.cy,Math.round(P.fx),Math.round(P.fy),e);
       if(!n){if(e.st==='chase'){e.st='stalk';say('Path blocked. It lost you... stalking.')}return}
@@ -1852,7 +2173,7 @@ function tail(){
 }
 
 function updateSidePanel(enemyStatus){
-  if(!sideInfoPanelEl)return;
+  if(!sipBodyEl)return;
   const sprintStatus=P.sprintCD>0?P.sprintCD.toFixed(0)+'s CD':(P.sprintT>0?'SPRINTING!':'Ready');
   const sprintCls=P.sprintT>0?'warn':(P.sprintCD<=0?'active':'');
   const diffName=currentDifficulty.name.toUpperCase();
@@ -1861,7 +2182,7 @@ function updateSidePanel(enemyStatus){
   const enemyCls=enemyIsRage?'danger':(enemies.some(e=>e.st==='stalk')?'warn':'');
   const viewModeLabel=mode==='abs'?'2D Top-Down':'3D Raycaster';
 
-  sideInfoPanelEl.innerHTML=
+  sipBodyEl.innerHTML=
     '<div class="sip-pause-hint">💡 Press <strong>H</strong> for Help &amp; Pause</div>'+
     '<div class="sip-section">'+
       '<div class="sip-row"><span class="sip-lbl">Difficulty:</span><span class="sip-val warn">'+diffName+'</span></div>'+
@@ -1876,6 +2197,7 @@ function updateSidePanel(enemyStatus){
     '<div class="sip-key-list">'+
       '<div class="sip-key-item"><kbd>H</kbd> <strong>Press H</strong> for Help &amp; Pause</div>'+
       '<div class="sip-key-item"><kbd>C</kbd> <strong>Press C</strong> to switch 2D / 3D</div>'+
+      '<div class="sip-key-item"><kbd>M</kbd> <strong>Press M</strong> to Mute / Unmute</div>'+
       '<div class="sip-key-item"><kbd>B</kbd> <strong>Press B</strong> to toggle BFS Path</div>'+
     '</div>';
 }
@@ -2384,12 +2706,14 @@ const map={
   e:'use',arrowup:'up',w:'up',arrowdown:'down',s:'down',
   arrowleft:'left',a:'left',arrowright:'right',d:'right',
   ' ':'snap',shift:'sprint','1':'stun','2':'block',
-  r:'restart',c:'mode',b:'debug',h:'help',f:'fullscreen'
+  r:'restart',c:'mode',b:'debug',h:'help',f:'fullscreen',
+  m:'mute'
 };
 
 addEventListener('keydown',e=>{
   const key=e.key.toLowerCase();
   if(!gameStarted){
+    if(key==='m'){toggleMute();e.preventDefault();return}
     if(aboutOpen){
       if(key==='escape'||key==='enter'||key===' '){
         toggleAbout(false);
@@ -2464,6 +2788,13 @@ if(togglePadBtn&&padEl){
   });
 }
 
+// Mute button click handlers
+const sideMuteBtn=document.getElementById('side-mute-btn');
+if(sideMuteBtn)sideMuteBtn.addEventListener('click',e=>{e.preventDefault();toggleMute()});
+
+const barMuteBtn=document.getElementById('bar-mute-btn');
+if(barMuteBtn)barMuteBtn.addEventListener('click',e=>{e.preventDefault();toggleMute()});
+
 // ============================================================================
 // START SCREEN & DIFFICULTY SELECTION SYSTEM
 // ============================================================================
@@ -2498,6 +2829,7 @@ function startGame(){
   gameStarted=true;
   const modal=document.getElementById('start-modal');
   if(modal)modal.classList.remove('active');
+  snd.onGameStart();
   init();
   last=performance.now();
   say('Difficulty: '+currentDifficulty.name+' — Find 3 keys & reach exit!');
