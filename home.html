@@ -38,17 +38,42 @@ canvas#c{max-width:calc(100vw - 16px);max-height:calc(100vh - 120px);width:auto;
 :fullscreen #bottom-wrap, :-webkit-full-screen #bottom-wrap, .is-fullscreen #bottom-wrap {
   display:none !important;
 }
-:fullscreen #hud-wrap, :-webkit-full-screen #hud-wrap, .is-fullscreen #hud-wrap {
+:fullscreen #hud-wrap, :-webkit-full-screen #hud-wrap, .is-fullscreen #hud-wrap, #viewport.is-fullscreen #hud-wrap {
   position:absolute;
-  top:0;
-  left:50%;
-  transform:translateX(-50%) translateY(-120%);
-  transition:transform 0.25s ease;
-  pointer-events:none;
-}
-:fullscreen #viewport:hover #hud-wrap, :-webkit-full-screen #viewport:hover #hud-wrap, .is-fullscreen:hover #hud-wrap {
-  transform:translateX(-50%) translateY(8px);
+  top:24px;
+  left:24px;
+  right:auto;
+  bottom:auto;
+  transform:none;
+  width:auto;
+  max-width:min(320px, calc((100vw - 100vmin) / 2 - 32px));
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
   pointer-events:auto;
+  z-index:25;
+}
+:fullscreen #hud, :-webkit-full-screen #hud, .is-fullscreen #hud, #viewport.is-fullscreen #hud {
+  width:auto;
+  text-align:left;
+  font-size:12px;
+  line-height:1.45;
+  padding:8px 12px;
+  box-sizing:border-box;
+}
+:fullscreen #msg, :-webkit-full-screen #msg, .is-fullscreen #msg, #viewport.is-fullscreen #msg {
+  text-align:left;
+  align-self:flex-start;
+  font-size:12px;
+  box-sizing:border-box;
+}
+@media (max-aspect-ratio: 1.05/1) {
+  :fullscreen #hud-wrap, :-webkit-full-screen #hud-wrap, .is-fullscreen #hud-wrap, #viewport.is-fullscreen #hud-wrap {
+    top:12px;
+    left:12px;
+    max-width:calc(100vw - 24px);
+  }
 }
 
 /* 3D MINIMAP RADAR PANEL (BOTTOM RIGHT STRIP) */
@@ -652,7 +677,7 @@ const DIFFICULTIES = {
     stuns: 1,
     blocks: 2,
     keys: 3,
-    maps: 1,
+    maps: 0,
     torches: 1,
     reveal2D: false,
     viewDist3D: 10,
@@ -919,7 +944,7 @@ function init(){
   for(;;){
     pair=CORNER_PAIRS[Math.floor(rng()*CORNER_PAIRS.length)];
     generateDungeon(pair);
-    P={cx:pair.p[0],cy:pair.p[1],fx:pair.p[0],fy:pair.p[1],tx:pair.p[0],ty:pair.p[1],mv:false,dir:pair.pDir,keys:0,torch:false,stun:0,block:0,adr:0,sprintT:0,sprintCD:0};
+    P={cx:pair.p[0],cy:pair.p[1],fx:pair.p[0],fy:pair.p[1],tx:pair.p[0],ty:pair.p[1],mv:false,dir:pair.pDir,keys:0,torch:false,hasMap:!!currentDifficulty.reveal2D,stun:0,block:0,adr:0,sprintT:0,sprintCD:0};
 
     const allCorners=[[1,1],[N-2,1],[1,N-2],[N-2,N-2]];
     const otherCorners=allCorners.filter(c=>!(c[0]===pair.p[0]&&c[1]===pair.p[1]));
@@ -945,6 +970,7 @@ function init(){
   seen=Array.from({length:N},()=>Array(N).fill(false));
   seen[pair.exit[1]][pair.exit[0]]=true;
   if(currentDifficulty.reveal2D){
+    P.hasMap=true;
     seen.forEach(r=>r.fill(true));
   }
   enemies.forEach(e=>{e.path=[]});
@@ -1041,7 +1067,7 @@ function pickup(){
     else if(it.type==='torch'){P.torch=true;say('Torch acquired. You can enter the dark zone.')}
     else if(it.type==='stun'){P.stun++;say('Stun shot +1  (face it, press 1)')}
     else if(it.type==='block'){P.block++;say('Block +1  (press 2)')}
-    else if(it.type==='map'){seen.forEach(r=>r.fill(true));say('Map: maze revealed.')}
+    else if(it.type==='map'){P.hasMap=true;seen.forEach(r=>r.fill(true));say('Map acquired: entire maze revealed!')}
   }
 }
 function arriveP(){
@@ -1256,7 +1282,7 @@ function draw2d(){
 
   // Floors
   for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-    if(!seen[y][x]||(dark(x,y)&&!P.torch))continue;
+    if(!bfsDebug&&(!seen[y][x]||(dark(x,y)&&!P.torch&&!P.hasMap)))continue;
     const px=x*T,py=y*T,a=(x+y)%2,gt=g[y][x];
     if(gt===0||gt===2){
       if(!atlasLoaded||!drawSprite('floor_0',px,py,T,T)){
@@ -1267,7 +1293,7 @@ function draw2d(){
 
   // Walls with auto-tiling
   for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-    if(!seen[y][x]||(dark(x,y)&&!P.torch))continue;
+    if(!bfsDebug&&(!seen[y][x]||(dark(x,y)&&!P.torch&&!P.hasMap)))continue;
     const px=x*T,py=y*T,d=dark(x,y),a=(x+y)%2,gt=g[y][x];
     if(gt===1){
       const wType=getWallType(x,y);
@@ -1282,7 +1308,7 @@ function draw2d(){
 
   // Exit
   for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-    if(!seen[y][x]||(dark(x,y)&&!P.torch))continue;
+    if(!bfsDebug&&(!seen[y][x]||(dark(x,y)&&!P.torch&&!P.hasMap)))continue;
     const px=x*T,py=y*T,gt=g[y][x];
     if(gt===2){
       const ex=px+T/2,ey=py+T/2,o=P.keys>=3;
@@ -1301,16 +1327,16 @@ function draw2d(){
 
   // Torch light sprites on walls
   for(let t of torchLights){
-    if(seen[t.y][t.x])drawSpriteFit('torch',t.x*T+T/2,t.y*T+T/2,T*0.75,T*0.95);
+    if(bfsDebug||seen[t.y][t.x])drawSpriteFit('torch',t.x*T+T/2,t.y*T+T/2,T*0.75,T*0.95);
   }
 
   // Lighting overlay
-  drawLighting2D(tm);
+  if(!bfsDebug)drawLighting2D(tm);
 
   const cc=v=>v*T+T/2,shadow=(x,y,r)=>{ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(x,y+10,r*1.2,r*.45,0,0,7);ctx.fill()};
   // Traps
   traps.forEach(t=>{
-    if(lit(t.x,t.y)){
+    if(bfsDebug||lit(t.x,t.y)){
       if(!atlasLoaded||!drawSpriteFit('trap',cc(t.x),cc(t.y),26,26)){
         ctx.strokeStyle='#4de0ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cc(t.x),cc(t.y),9,0,7);ctx.stroke();
       }
@@ -1325,7 +1351,7 @@ function draw2d(){
   // Items
   const col={key:'#ffd23a',torch:'#ff9a2e',stun:'#4de0ff',block:'#b4b4b4',map:'#5fe08a'},ch={key:'K',torch:'T',stun:'S',block:'B',map:'M'};
   items.forEach(it=>{
-    if(!lit(it.x,it.y)||Math.hypot(it.x-P.fx,it.y-P.fy)>3.2)return;
+    if(!bfsDebug&&(!lit(it.x,it.y)||Math.hypot(it.x-P.fx,it.y-P.fy)>3.2))return;
     const cx=cc(it.x),cy=cc(it.y)+Math.sin(tm/220+it.x)*2;
     ctx.globalAlpha=.25+.12*Math.sin(tm/180);ctx.fillStyle=col[it.type];ctx.beginPath();ctx.arc(cx,cy,16,0,7);ctx.fill();ctx.globalAlpha=1;
     if(!atlasLoaded||!drawSpriteFit(it.type,cx,cy,24,24)){
@@ -1334,7 +1360,7 @@ function draw2d(){
   });
   // Hunter
   enemies.forEach(e=>{
-    if(lit(Math.round(e.fx),Math.round(e.fy))){
+    if(bfsDebug||lit(Math.round(e.fx),Math.round(e.fy))){
       const ex=cc(e.fx),ey=cc(e.fy),rage=e.st==='chase'||e.st==='windup',sh=e.st==='windup'?(Math.random()-.5)*4:0;
       shadow(ex,ey,16);ctx.save();ctx.translate(ex+sh,ey);
       const bc=rage?'#ff5240':e.st==='stun'?'#8ab4c0':'#6ee7d9';
@@ -1497,7 +1523,7 @@ function draw3d(){
     const rx=wx-ox,ry=wy-oy,tx=inv*(dy*rx-dx*ry),ty=inv*(-ply*rx+plx*ry);
     if(ty<.15)return;
     const lh=RW/ty,sh=lh*Hh,sw=lh*Wd,sc=RW/2*(1+tx/ty),bot=h+lh/2-lift*lh,top=bot-sh;
-    const L=lightAt(Math.floor(wx),Math.floor(wy),Math.hypot(rx,ry));
+    const L=bfsDebug?Math.max(0.65,lightAt(Math.floor(wx),Math.floor(wy),Math.hypot(rx,ry))):lightAt(Math.floor(wx),Math.floor(wy),Math.hypot(rx,ry));
     const tex=texName&&texSpr[texName];
     for(let x=Math.max(0,Math.floor(sc-sw/2));x<Math.min(RW,sc+sw/2);x++){
       if(ty>=zb[x])continue;
@@ -1518,17 +1544,17 @@ function draw3d(){
     }
   };
   items.forEach(it=>{
-    if(lit(it.x,it.y)&&Math.hypot(it.x-P.fx,it.y-P.fy)<=3.8){
+    if(bfsDebug||(lit(it.x,it.y)&&Math.hypot(it.x-P.fx,it.y-P.fy)<=3.8)){
       S.push([it.x+.5,it.y+.5,.48,.48,.34+.05*Math.sin(tm/240+it.x),it.type,null]);
     }
   });
   traps.forEach(t=>{
-    if(lit(t.x,t.y)){
+    if(bfsDebug||lit(t.x,t.y)){
       S.push([t.x+.5,t.y+.5,.18,.45,.02,'trap',()=>[80,225,255]]);
     }
   });
   enemies.forEach(e=>{
-    if(lit(Math.round(e.fx),Math.round(e.fy))){
+    if(bfsDebug||lit(Math.round(e.fx),Math.round(e.fy))){
       const rage=e.st==='chase'||e.st==='windup',bd=rage?[220,35,35]:e.st==='stun'?[120,180,200]:[230,230,220],sh=e.st==='windup'?Math.sin(tm*40)*.04:0;
       S.push([e.fx+.5+sh,e.fy+.5,1.25,.55,0,null,(u,v)=>{
         const xx=Math.abs(u-.5);
@@ -1642,7 +1668,7 @@ function drawMinimap(){
     for(let dx=-R;dx<=R;dx++){
       const wx=pcx+dx,wy=pcy+dy;
       if(wx<0||wy<0||wx>=N||wy>=N)continue;
-      if(!seen[wy][wx]||(dark(wx,wy)&&!P.torch))continue;
+      if(!bfsDebug&&(!seen[wy][wx]||(dark(wx,wy)&&!P.torch&&!P.hasMap)))continue;
       const gt=g[wy][wx];
       if(gt===0||gt===2){
         const px=(dx+R)*T,py=(dy+R)*T,a=(wx+wy)%2;
@@ -1663,7 +1689,7 @@ function drawMinimap(){
     for(let dx=-R;dx<=R;dx++){
       const wx=pcx+dx,wy=pcy+dy;
       if(wx<0||wy<0||wx>=N||wy>=N)continue;
-      if(!seen[wy][wx]||(dark(wx,wy)&&!P.torch))continue;
+      if(!bfsDebug&&(!seen[wy][wx]||(dark(wx,wy)&&!P.torch&&!P.hasMap)))continue;
       if(g[wy][wx]!==1)continue;
 
       const px=(dx+R)*T,py=(dy+R)*T,d=dark(wx,wy),a=(wx+wy)%2;
@@ -1686,7 +1712,7 @@ function drawMinimap(){
     for(let dx=-R;dx<=R;dx++){
       const wx=pcx+dx,wy=pcy+dy;
       if(wx<0||wy<0||wx>=N||wy>=N)continue;
-      if(!seen[wy][wx]||(dark(wx,wy)&&!P.torch))continue;
+      if(!bfsDebug&&(!seen[wy][wx]||(dark(wx,wy)&&!P.torch&&!P.hasMap)))continue;
       if(g[wy][wx]===2){
         const px=(dx+R)*T,py=(dy+R)*T;
         const ex=px+T/2,ey=py+T/2,o=P.keys>=3;
@@ -1707,7 +1733,7 @@ function drawMinimap(){
   // 4. Wall Torches (matching draw2d)
   for(let t of torchLights){
     const tdx=t.x-pcx,tdy=t.y-pcy;
-    if(Math.abs(tdx)<=R&&Math.abs(tdy)<=R&&seen[t.y][t.x]){
+    if(Math.abs(tdx)<=R&&Math.abs(tdy)<=R&&(bfsDebug||seen[t.y][t.x])){
       const tpx=(tdx+R)*T+T/2,tpy=(tdy+R)*T+T/2;
       drawMiniSpriteFit('torch',tpx,tpy,T*0.75,T*0.95);
       mctx.fillStyle='rgba(255,180,50,0.22)';
@@ -1718,7 +1744,7 @@ function drawMinimap(){
   // 5. Traps (matching draw2d)
   traps.forEach(t=>{
     const tdx=t.x-pcx,tdy=t.y-pcy;
-    if(Math.abs(tdx)<=R&&Math.abs(tdy)<=R&&lit(t.x,t.y)){
+    if(Math.abs(tdx)<=R&&Math.abs(tdy)<=R&&(bfsDebug||lit(t.x,t.y))){
       const cx=(tdx+R)*T+T/2,cy=(tdy+R)*T+T/2;
       if(!atlasLoaded||!drawMiniSpriteFit('trap',cx,cy,14,14)){
         mctx.strokeStyle='#4de0ff';mctx.lineWidth=2;
@@ -1730,7 +1756,7 @@ function drawMinimap(){
   // 6. Blocks (matching draw2d)
   blocks.forEach(b=>{
     const bdx=b.x-pcx,bdy=b.y-pcy;
-    if(Math.abs(bdx)<=R&&Math.abs(bdy)<=R&&(seen[b.y][b.x]||lit(b.x,b.y))){
+    if(Math.abs(bdx)<=R&&Math.abs(bdy)<=R&&(bfsDebug||seen[b.y][b.x]||lit(b.x,b.y))){
       const px=(bdx+R)*T,py=(bdy+R)*T;
       if(!atlasLoaded||!drawMiniSprite('block',px+1,py+1,T-2,T-2)){
         mctx.fillStyle='#5a3d24';mctx.fillRect(px+2,py+2,T-4,T-4);
@@ -1742,7 +1768,7 @@ function drawMinimap(){
   const col={key:'#ffd23a',torch:'#ff9a2e',stun:'#4de0ff',block:'#b4b4b4',map:'#5fe08a'};
   items.forEach(it=>{
     const idx=it.x-pcx,idy=it.y-pcy;
-    if(Math.abs(idx)<=R&&Math.abs(idy)<=R&&lit(it.x,it.y)&&Math.hypot(it.x-P.fx,it.y-P.fy)<=3.8){
+    if(Math.abs(idx)<=R&&Math.abs(idy)<=R&&(bfsDebug||(lit(it.x,it.y)&&Math.hypot(it.x-P.fx,it.y-P.fy)<=3.8))){
       const cx=(idx+R)*T+T/2;
       const cy=(idy+R)*T+T/2+Math.sin(tm/220+it.x)*1.5;
 
@@ -1762,7 +1788,7 @@ function drawMinimap(){
   enemies.forEach(e=>{
     const ex_grid=Math.round(e.fx),ey_grid=Math.round(e.fy);
     const edx=ex_grid-pcx,edy=ey_grid-pcy;
-    if(Math.abs(edx)<=R&&Math.abs(edy)<=R&&lit(ex_grid,ey_grid)){
+    if(Math.abs(edx)<=R&&Math.abs(edy)<=R&&(bfsDebug||lit(ex_grid,ey_grid))){
       const ex=(e.fx-pcx+R)*T+T/2,ey=(e.fy-pcy+R)*T+T/2;
       const rage=e.st==='chase'||e.st==='windup';
       const sh=e.st==='windup'?(Math.random()-0.5)*2:0;
@@ -1834,24 +1860,26 @@ function drawMinimap(){
   mctx.restore();
 
   // 10. Dark zone & torch vision radial gradient (matching draw2d)
-  const pRadius=P.torch?(2.6*T):(dark(pcx,pcy)?(1.4*T):(6*T));
-  const gr=mctx.createRadialGradient(centerPos,centerPos,Math.min(18,pRadius*0.35),centerPos,centerPos,Math.max(32,pRadius));
+  if(!bfsDebug){
+    const pRadius=P.torch?(2.6*T):(dark(pcx,pcy)?(1.4*T):(6*T));
+    const gr=mctx.createRadialGradient(centerPos,centerPos,Math.min(18,pRadius*0.35),centerPos,centerPos,Math.max(32,pRadius));
 
-  if(dark(pcx,pcy)&&!P.torch){
-    gr.addColorStop(0,'rgba(0,0,0,0.65)');
-    gr.addColorStop(0.5,'rgba(0,0,0,0.92)');
-    gr.addColorStop(1,'rgba(0,0,0,0.99)');
-  }else if(P.torch){
-    gr.addColorStop(0,'rgba(0,0,0,0)');
-    gr.addColorStop(0.7,'rgba(0,0,0,0.15)');
-    gr.addColorStop(1,'rgba(0,0,0,0.85)');
-  }else{
-    gr.addColorStop(0,'rgba(0,0,0,0)');
-    gr.addColorStop(0.7,'rgba(0,0,0,0.12)');
-    gr.addColorStop(1,'rgba(0,0,0,0.78)');
+    if(dark(pcx,pcy)&&!P.torch){
+      gr.addColorStop(0,'rgba(0,0,0,0.65)');
+      gr.addColorStop(0.5,'rgba(0,0,0,0.92)');
+      gr.addColorStop(1,'rgba(0,0,0,0.99)');
+    }else if(P.torch){
+      gr.addColorStop(0,'rgba(0,0,0,0)');
+      gr.addColorStop(0.7,'rgba(0,0,0,0.15)');
+      gr.addColorStop(1,'rgba(0,0,0,0.85)');
+    }else{
+      gr.addColorStop(0,'rgba(0,0,0,0)');
+      gr.addColorStop(0.7,'rgba(0,0,0,0.12)');
+      gr.addColorStop(1,'rgba(0,0,0,0.78)');
+    }
+    mctx.fillStyle=gr;
+    mctx.fillRect(0,0,272,272);
   }
-  mctx.fillStyle=gr;
-  mctx.fillRect(0,0,272,272);
 
   // Torch circle guide
   if(P.torch){
