@@ -54,6 +54,11 @@ canvas#c{max-width:calc(100vw - 16px);max-height:calc(100vh - 120px);width:auto;
   pointer-events:auto;
   z-index:25;
 }
+@media (min-aspect-ratio: 1.25/1) and (min-width: 900px) {
+  :fullscreen #hud-wrap, :-webkit-full-screen #hud-wrap, .is-fullscreen #hud-wrap, #viewport.is-fullscreen #hud-wrap {
+    display:none !important;
+  }
+}
 :fullscreen #hud, :-webkit-full-screen #hud, .is-fullscreen #hud, #viewport.is-fullscreen #hud {
   width:auto;
   text-align:left;
@@ -74,6 +79,121 @@ canvas#c{max-width:calc(100vw - 16px);max-height:calc(100vh - 120px);width:auto;
     left:12px;
     max-width:calc(100vw - 24px);
   }
+}
+
+/* DESKTOP SIDE PANEL (UTILIZES LEFT BLACK BAR AREA ON PC / WIDESCREEN) */
+#side-info-panel {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 18px;
+  width: min(290px, calc((100vw - 100vmin) / 2 - 32px));
+  max-width: 290px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(10, 16, 19, 0.92);
+  border: 1px solid #4c666b;
+  border-radius: 10px;
+  padding: 14px 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.75);
+  z-index: 25;
+  pointer-events: auto;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+@media (min-aspect-ratio: 1.25/1) and (min-width: 900px) {
+  #side-info-panel {
+    display: flex;
+  }
+}
+@media (max-width: 899px) {
+  #side-info-panel {
+    display: none !important;
+  }
+}
+.sip-title {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  color: #7fe3ff;
+  border-bottom: 1px solid rgba(76, 102, 107, 0.6);
+  padding-bottom: 6px;
+  text-shadow: 1px 1px 2px #000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sip-pause-hint {
+  font-size: 11px;
+  color: #ffd45c;
+  font-weight: 700;
+  background: rgba(255, 212, 92, 0.12);
+  border: 1px solid rgba(255, 212, 92, 0.35);
+  border-radius: 6px;
+  padding: 5px 9px;
+  line-height: 1.35;
+}
+.sip-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sip-heading {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #8fa5a8;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.sip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #e8e2c8;
+}
+.sip-row .sip-lbl {
+  color: #a0b6b9;
+  font-weight: 600;
+}
+.sip-row .sip-val {
+  font-weight: 800;
+  color: #ffffff;
+}
+.sip-row .sip-val.active {
+  color: #7fe3ff;
+}
+.sip-row .sip-val.danger {
+  color: #ff6a5a;
+}
+.sip-row .sip-val.warn {
+  color: #ffd45c;
+}
+.sip-key-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(76, 102, 107, 0.4);
+  padding-top: 8px;
+}
+.sip-key-item {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #b0c2c5;
+}
+.sip-key-item kbd {
+  background: #1a272b;
+  border: 1px solid #4c666b;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  color: #7fe3ff;
+  font-weight: 800;
+  margin-right: 4px;
 }
 
 /* 3D MINIMAP RADAR PANEL (BOTTOM RIGHT STRIP) */
@@ -410,6 +530,8 @@ kbd{
 }
 </style></head><body>
 <div id="viewport">
+<!-- DESKTOP LEFT BLACK-BAR INFO PANEL (PC / WIDESCREEN) -->
+<div id="side-info-panel"></div>
 <div id="hud-wrap"><div id="hud"></div><div id="msg"></div></div>
 <canvas id="c" width="992" height="992"></canvas>
 <div id="bottom-wrap">
@@ -714,6 +836,9 @@ const isBlock=(x,y)=>blocks.some(b=>b.x===x&&b.y===y);
 const solid=(x,y)=>x<0||y<0||x>=N||y>=N||g[y][x]===1||isBlock(x,y);
 const lit=(x,y)=>!dark(x,y)||(P.torch&&Math.hypot(x-P.fx,y-P.fy)<=2.6);
 function say(t){msgEl.textContent=t}
+let centerMsg='',centerMsgT=0,centerMsgTone='normal';
+function centerSay(t,tone='normal'){centerMsg=t;centerMsgT=0.8;centerMsgTone=tone}
+const sideInfoPanelEl=document.getElementById('side-info-panel');
 
 // ============================================================================
 // PROCEDURAL DUNGEON GENERATOR (Rooms + Corridor Carving, 31×31)
@@ -1072,13 +1197,38 @@ function pickup(){
       enemies.forEach(e=>{
         if(e.st==='idle'){e.st='stalk';woke=true}
       });
-      if(woke)say('Key '+P.keys+'/3 — something woke up...');
-      else say('Key '+P.keys+'/3');
+      if(P.keys>=3){
+        say('All 3 keys collected! The exit gate is open. ESCAPE!');
+        centerSay('You have collected 3 keys, escape !','warn');
+      }else if(woke){
+        say('Key '+P.keys+'/3 — something woke up...');
+        centerSay('Picked up Key — something has woken up!','danger');
+      }else{
+        say('Key '+P.keys+'/3');
+        centerSay('Picked up Key ('+P.keys+'/3)','normal');
+      }
     }
-    else if(it.type==='torch'){P.torch=true;say('Torch acquired. You can enter the dark zone.')}
-    else if(it.type==='stun'){P.stun++;say('Stun shot +1  (face it, press 1)')}
-    else if(it.type==='block'){P.block++;say('Block +1  (press 2)')}
-    else if(it.type==='map'){P.hasMap=true;seen.forEach(r=>r.fill(true));say('Map acquired: entire maze revealed!')}
+    else if(it.type==='torch'){
+      P.torch=true;
+      say('Torch acquired. You can enter the dark zone.');
+      centerSay('Picked up Torch','warn');
+    }
+    else if(it.type==='stun'){
+      P.stun++;
+      say('Stun shot +1  (face it, press 1)');
+      centerSay('Picked up Stun Shot','normal');
+    }
+    else if(it.type==='block'){
+      P.block++;
+      say('Block +1  (press 2)');
+      centerSay('Picked up Block','normal');
+    }
+    else if(it.type==='map'){
+      P.hasMap=true;
+      seen.forEach(r=>r.fill(true));
+      say('Map acquired: entire maze revealed!');
+      centerSay('Picked up Map','normal');
+    }
   }
 }
 function arriveP(){
@@ -1186,6 +1336,7 @@ function release(k){delete K[k];held=held.filter(h=>h!==k)}
 
 function update(dt){
   if(over||isPaused||!gameStarted)return;
+  centerMsgT=Math.max(0,centerMsgT-dt);
   P.adr=Math.max(0,P.adr-dt);P.zapT=Math.max(0,(P.zapT||0)-dt);P.sprintT=Math.max(0,P.sprintT-dt);P.sprintCD=Math.max(0,P.sprintCD-dt);
   blocks.forEach(b=>b.t-=dt);blocks=blocks.filter(b=>b.t>0);
   // player
@@ -1437,10 +1588,75 @@ function tail(){
     ctx.fillStyle='#d9a441';ctx.fillText('Press R or tap Restart',W/2,by+bh*.84);
     ctx.restore();
   }
+  // CENTER-SCREEN NOTIFICATION OVERLAY (0.8s on item pickup / wake / 3 keys)
+  if(!over&&centerMsgT>0&&centerMsg){
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    const alpha=Math.min(1,centerMsgT/0.18);
+    ctx.globalAlpha=alpha;
+    const isWarn=centerMsgTone==='warn';
+    const isDanger=centerMsgTone==='danger';
+    const strokeCol=isDanger?'#ff5240':(isWarn?'#ffd45c':'#52d3eb');
+    const textCol=isDanger?'#ff9d91':(isWarn?'#ffe891':'#aff4ff');
+    const fontSize=Math.max(16,Math.round(W*0.034));
+    ctx.font='900 '+fontSize+'px system-ui,sans-serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    const textMetrics=ctx.measureText(centerMsg);
+    const pw=textMetrics.width+52,ph=fontSize*2.1;
+    const px=(W-pw)/2,py=(W-ph)/2;
+
+    ctx.fillStyle='rgba(8,14,17,0.92)';
+    ctx.strokeStyle=strokeCol;
+    ctx.lineWidth=2.5;
+    ctx.shadowColor='rgba(0,0,0,0.85)';
+    ctx.shadowBlur=20;
+    ctx.beginPath();
+    ctx.roundRect(px,py,pw,ph,12);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowBlur=6;
+    ctx.shadowColor='rgba(0,0,0,0.9)';
+    ctx.fillStyle=textCol;
+    ctx.fillText(centerMsg,W/2,W/2);
+    ctx.restore();
+  }
+
   const enemyStatus = enemies.length > 1
     ? '096 ('+enemies.length+'): ' + enemies.map(e=>e.st[0].toUpperCase()).join('/')
     : '096: ' + (enemies[0]?enemies[0].st.toUpperCase():'IDLE');
   hud.innerHTML='Keys '+P.keys+'/3 · Torch '+(P.torch?'✓':'✗')+' · Stun '+P.stun+' · Block '+P.block+' · Sprint '+(P.sprintCD>0?P.sprintCD.toFixed(0)+'s':'ready')+' · '+enemyStatus+' · ['+currentDifficulty.name.toUpperCase()+']'+(bfsDebug?' · <span style="color:#4de0ff">[BFS ON]</span>':'')+' · Seed #'+currentSeed;
+  updateSidePanel(enemyStatus);
+}
+
+function updateSidePanel(enemyStatus){
+  if(!sideInfoPanelEl)return;
+  const sprintStatus=P.sprintCD>0?P.sprintCD.toFixed(0)+'s CD':(P.sprintT>0?'SPRINTING!':'Ready');
+  const sprintCls=P.sprintT>0?'warn':(P.sprintCD<=0?'active':'');
+  const diffName=currentDifficulty.name.toUpperCase();
+  const rawEnemy=enemies.length>1?enemies.map(e=>e.st.toUpperCase()).join('/'):(enemies[0]?enemies[0].st.toUpperCase():'IDLE');
+  const enemyIsRage=enemies.some(e=>e.st==='chase'||e.st==='windup');
+  const enemyCls=enemyIsRage?'danger':(enemies.some(e=>e.st==='stalk')?'warn':'');
+  const viewModeLabel=mode==='abs'?'2D Top-Down':'3D Raycaster';
+
+  sideInfoPanelEl.innerHTML=
+    '<div class="sip-pause-hint">💡 Press <strong>H</strong> for Help &amp; Pause</div>'+
+    '<div class="sip-section">'+
+      '<div class="sip-row"><span class="sip-lbl">Difficulty:</span><span class="sip-val warn">'+diffName+'</span></div>'+
+      '<div class="sip-row"><span class="sip-lbl">View:</span><span class="sip-val active">'+viewModeLabel+'</span></div>'+
+      '<div class="sip-row"><span class="sip-lbl">Keys:</span><span class="sip-val '+(P.keys>=3?'active':'')+'">'+P.keys+' / 3</span></div>'+
+      '<div class="sip-row"><span class="sip-lbl">Torch:</span><span class="sip-val '+(P.torch?'active':'')+'">'+(P.torch?'Acquired ✓':'Missing ✗')+'</span></div>'+
+      '<div class="sip-row"><span class="sip-lbl">Stun Shots:</span><span class="sip-val '+(P.stun>0?'active':'')+'">'+P.stun+'</span></div>'+
+      '<div class="sip-row"><span class="sip-lbl">Blocks:</span><span class="sip-val '+(P.block>0?'active':'')+'">'+P.block+'</span></div>'+
+      '<div class="sip-row"><span class="sip-lbl">Sprint:</span><span class="sip-val '+sprintCls+'">'+sprintStatus+'</span></div>'+
+      '<div class="sip-row"><span class="sip-lbl">Hunter (096):</span><span class="sip-val '+enemyCls+'">'+rawEnemy+'</span></div>'+
+    '</div>'+
+    '<div class="sip-key-list">'+
+      '<div class="sip-key-item"><kbd>H</kbd> <strong>Press H</strong> for Help &amp; Pause</div>'+
+      '<div class="sip-key-item"><kbd>C</kbd> <strong>Press C</strong> to switch 2D / 3D</div>'+
+      '<div class="sip-key-item"><kbd>B</kbd> <strong>Press B</strong> to toggle BFS Path</div>'+
+    '</div>';
 }
 
 // ---------- 3D raycaster view (shares all game state with 2D) ----------
