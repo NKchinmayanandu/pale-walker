@@ -1,5 +1,7 @@
 # 🏰 PALE WALKER
 
+Direct Link to try out : https://game.amyaseen.com/home.html
+
 > **A retro survival-horror dungeon crawler featuring dual-perspective rendering (2D Top-Down & 3D Pseudo-Raycaster), dynamic atmospheric torch lighting, procedural seeded labyrinth generation, and an unrelenting stalking entity driven by real-time BFS pathfinding.**
 
 <p align="center">
